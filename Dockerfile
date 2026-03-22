@@ -161,6 +161,7 @@ RUN set -eux; \
         fi; \
         python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \
     fi; \
+    mkdir -p /app/backend/data; \
     chown -R $UID:$GID /app/backend/data/
 
 
