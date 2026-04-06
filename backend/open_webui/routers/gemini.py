@@ -148,6 +148,33 @@ def _resolve_gemini_connection_by_model_id(
 
     return chosen_idx, url, key, api_config
 
+
+async def _is_user_visible_model(
+    request: Request, user: UserModel, model_id: str
+) -> bool:
+    state = getattr(request, "state", None)
+    models_map = getattr(state, "MODELS", None) if state is not None else None
+    if isinstance(models_map, dict) and model_id in models_map:
+        return True
+
+    try:
+        # Avoid a module-level import here because utils.models imports this router.
+        from open_webui.utils.models import get_all_models as load_user_models
+
+        await load_user_models(request, user=user)
+    except Exception as e:
+        log.debug(
+            "Failed to load user-scoped models while validating %s: %s: %s",
+            model_id,
+            type(e).__name__,
+            e,
+        )
+        return False
+
+    state = getattr(request, "state", None)
+    models_map = getattr(state, "MODELS", None) if state is not None else None
+    return isinstance(models_map, dict) and model_id in models_map
+
 ##########################################
 #
 # Utility functions
@@ -1437,7 +1464,8 @@ async def generate_chat_completion(
     elif not bypass_filter:
         # Match OpenAI router behavior: allow base models for admins; users require model record/access.
         if user.role != "admin":
-            raise HTTPException(status_code=403, detail="Model not found")
+            if not await _is_user_visible_model(request, user, model_id):
+                raise HTTPException(status_code=403, detail="Model not found")
 
     form_data = payload
     stream = form_data.get("stream", False)
