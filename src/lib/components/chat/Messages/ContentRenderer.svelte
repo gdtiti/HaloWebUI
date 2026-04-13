@@ -1,10 +1,10 @@
-<script>
-	import { onDestroy, onMount, tick, getContext, createEventDispatcher } from 'svelte';
-	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
+<script lang="ts">
+	import { createEventDispatcher, getContext, onDestroy, onMount, tick } from 'svelte';
+	import { writable, type Writable } from 'svelte/store';
 
 	import Markdown from './Markdown.svelte';
 	import {
+		artifactAutoOpenDismissedMessageId,
 		artifactPreviewTarget,
 		chatId,
 		mobile,
@@ -17,6 +17,42 @@
 	import { createMessagesList } from '$lib/utils';
 	import { getCitationEntries } from '$lib/utils/citations';
 	import { resolveChatTransitionMode } from '$lib/utils/lobehub-chat-appearance';
+	import {
+		createEmptySelectionThreads,
+		hashSelectionThreadSource,
+		resolveSelectionAnchorRange,
+		serializeSelectionRange,
+		type PersistedSelectionThreads,
+		type SelectionThread
+	} from '$lib/utils/selection-threads';
+
+	const i18n = getContext('i18n');
+	const dispatch = createEventDispatcher();
+
+	type ThreadLayout = {
+		markerTop: number;
+		markerLeft: number;
+		cardTop: number;
+		cardLeft: number;
+		cardMaxWidth: number;
+	};
+
+	type PendingSelection = {
+		quote: string;
+		sourceMessageHash: string;
+		anchor: SelectionThread['anchor'];
+	};
+
+	type SelectionThreadManager = {
+		selectionThreadsStore: Writable<PersistedSelectionThreads>;
+		expandedSelectionThreadId: Writable<string | null>;
+		updateSelectionThreads: (
+			updater:
+				| PersistedSelectionThreads
+				| ((current: PersistedSelectionThreads) => PersistedSelectionThreads),
+			options?: { persist?: boolean; immediate?: boolean }
+		) => void;
+	};
 
 	export let id;
 	export let content;
@@ -36,20 +72,48 @@
 	export let onAddMessages = () => {};
 	export let headings = [];
 
-	let contentContainerElement;
-	let floatingButtonsElement;
+	const fallbackSelectionThreadsStore = writable(createEmptySelectionThreads());
+	const fallbackExpandedSelectionThreadId = writable<string | null>(null);
+	const selectionThreadManager =
+		getContext<SelectionThreadManager | undefined>('selectionThreadManager') ?? null;
+	const selectionThreadsStore =
+		selectionThreadManager?.selectionThreadsStore ?? fallbackSelectionThreadsStore;
+	const expandedSelectionThreadId =
+		selectionThreadManager?.expandedSelectionThreadId ?? fallbackExpandedSelectionThreadId;
+	const updateSelectionThreadsState =
+		selectionThreadManager?.updateSelectionThreads ?? (() => {});
+
+	let contentContainerElement: HTMLElement | null = null;
 	let currentTransitionMode = 'none';
+	let pendingSelection: PendingSelection | null = null;
+	let pendingSelectionPosition: { top: number; left: number } | null = null;
+	let currentMessageThreads: SelectionThread[] = [];
+	let threadLayouts: Record<string, ThreadLayout> = {};
+	let resizeObserver: ResizeObserver | undefined;
 
 	// Long content truncation
 	const MAX_CONTENT_HEIGHT = 2000;
 	const MESSAGE_OUTLINE_SCROLL_OFFSET = 24;
 	let isExpanded = false;
 	let needsTruncation = false;
-	let resizeObserver;
 	let shouldCollapseHistoricalLongResponses = false;
+
+	const sameAnchor = (
+		left: SelectionThread['anchor'],
+		right: SelectionThread['anchor']
+	): boolean =>
+		left.start === right.start &&
+		left.end === right.end &&
+		left.exact === right.exact &&
+		left.prefix === right.prefix &&
+		left.suffix === right.suffix;
 
 	$: shouldCollapseHistoricalLongResponses =
 		!isLastMessage && ($settings?.collapseHistoricalLongResponses ?? true);
+
+	$: currentMessageThreads = (($selectionThreadsStore.items ?? []) as SelectionThread[])
+		.filter((thread) => thread.sourceMessageId === id)
+		.sort((left, right) => left.createdAt - right.createdAt);
 
 	function checkTruncation() {
 		if (!contentContainerElement) return;
@@ -67,14 +131,13 @@
 		if (streaming) {
 			needsTruncation = false;
 		} else {
-			// Re-check when streaming ends or truncation rules change
 			tick().then(checkTruncation);
 		}
 	}
 
 	$: currentTransitionMode = resolveChatTransitionMode($settings);
 
-	const highlightHeading = (headingElement) => {
+	const highlightHeading = (headingElement: HTMLElement) => {
 		headingElement.classList.remove('message-outline-anchor-target');
 		void headingElement.offsetWidth;
 		headingElement.classList.add('message-outline-anchor-target');
@@ -87,7 +150,167 @@
 		);
 	};
 
-	export async function scrollToHeading(headingId) {
+	const clearPendingSelection = () => {
+		pendingSelection = null;
+		pendingSelectionPosition = null;
+	};
+
+	const updateMessageThreads = (
+		updater: (threads: SelectionThread[]) => SelectionThread[],
+		options?: { persist?: boolean; immediate?: boolean }
+	) => {
+		updateSelectionThreadsState((currentState) => {
+			const otherThreads = currentState.items.filter(
+				(thread) => thread.sourceMessageId !== id
+			);
+			const messageThreads = currentState.items.filter(
+				(thread) => thread.sourceMessageId === id
+			);
+
+			return {
+				version: 1,
+				items: [...otherThreads, ...updater(messageThreads)].sort(
+					(left, right) => left.createdAt - right.createdAt
+				)
+			};
+		}, options);
+	};
+
+	const computeToolbarPosition = (rect: DOMRect, parentRect: DOMRect) => {
+		const toolbarWidth = 220;
+		const left = Math.max(
+			0,
+			Math.min(rect.left - parentRect.left, Math.max(parentRect.width - toolbarWidth, 0))
+		);
+
+		return {
+			top: rect.bottom - parentRect.top + 8,
+			left
+		};
+	};
+
+	const computeThreadLayout = (rect: DOMRect, parentRect: DOMRect): ThreadLayout => {
+		const markerWidth = 48;
+		const cardMaxWidth = Math.min(parentRect.width, 384);
+		const markerLeft = Math.max(
+			0,
+			Math.min(rect.right - parentRect.left + 8, Math.max(parentRect.width - markerWidth, 0))
+		);
+		const markerTop = Math.max(0, rect.bottom - parentRect.top - 10);
+		const cardLeft = Math.max(
+			0,
+			Math.min(rect.left - parentRect.left, Math.max(parentRect.width - cardMaxWidth, 0))
+		);
+		const estimatedCardHeight = 360;
+		const belowTop = rect.bottom - parentRect.top + 12;
+		const aboveTop = rect.top - parentRect.top - estimatedCardHeight - 12;
+		const cardTop =
+			parentRect.bottom - rect.bottom < estimatedCardHeight + 16
+				? Math.max(0, aboveTop)
+				: belowTop;
+
+		return {
+			markerTop,
+			markerLeft,
+			cardTop,
+			cardLeft,
+			cardMaxWidth
+		};
+	};
+
+	const clearSelectionHighlights = () => {
+		try {
+			if ('highlights' in CSS) {
+				(CSS as any).highlights.delete('selection-thread');
+				(CSS as any).highlights.delete('selection-thread-active');
+			}
+		} catch {
+			// Graceful degradation
+		}
+	};
+
+	const applySelectionHighlights = (regularRanges: Range[], activeRanges: Range[]) => {
+		try {
+			if (!('highlights' in CSS)) {
+				return;
+			}
+
+			if (regularRanges.length > 0) {
+				const regularHighlight = new (window as any).Highlight();
+				regularRanges.forEach((range) => regularHighlight.add(range));
+				(CSS as any).highlights.set('selection-thread', regularHighlight);
+			} else {
+				(CSS as any).highlights.delete('selection-thread');
+			}
+
+			if (activeRanges.length > 0) {
+				const activeHighlight = new (window as any).Highlight();
+				activeRanges.forEach((range) => activeHighlight.add(range));
+				(CSS as any).highlights.set('selection-thread-active', activeHighlight);
+			} else {
+				(CSS as any).highlights.delete('selection-thread-active');
+			}
+		} catch {
+			// Graceful degradation
+		}
+	};
+
+	const syncThreadLayouts = async () => {
+		if (!contentContainerElement) {
+			threadLayouts = {};
+			clearSelectionHighlights();
+			return;
+		}
+
+		await tick();
+
+		const parentRect = contentContainerElement.getBoundingClientRect();
+		const currentMessageHash = hashSelectionThreadSource(contentContainerElement.textContent ?? '');
+		const nextLayouts: Record<string, ThreadLayout> = {};
+		const regularRanges: Range[] = [];
+		const activeRanges: Range[] = [];
+		const invalidThreadIds: string[] = [];
+
+		for (const thread of currentMessageThreads) {
+			const range = resolveSelectionAnchorRange(contentContainerElement, thread.anchor, {
+				preferOffsets: thread.sourceMessageHash === currentMessageHash
+			});
+			if (!range) {
+				invalidThreadIds.push(thread.id);
+				continue;
+			}
+
+			const rect = range.getBoundingClientRect();
+			nextLayouts[thread.id] = computeThreadLayout(rect, parentRect);
+
+			if (thread.id === $expandedSelectionThreadId) {
+				activeRanges.push(range);
+			} else {
+				regularRanges.push(range);
+			}
+		}
+
+		threadLayouts = nextLayouts;
+		applySelectionHighlights(regularRanges, activeRanges);
+
+		if (invalidThreadIds.length > 0) {
+			updateMessageThreads(
+				(threads) => threads.filter((thread) => !invalidThreadIds.includes(thread.id)),
+				{ immediate: true }
+			);
+			if (invalidThreadIds.includes($expandedSelectionThreadId ?? '')) {
+				expandedSelectionThreadId.set(null);
+			}
+		}
+	};
+
+	$: if (contentContainerElement) {
+		currentMessageThreads;
+		$expandedSelectionThreadId;
+		void syncThreadLayouts();
+	}
+
+	export async function scrollToHeading(headingId: string) {
 		if (needsTruncation && !isExpanded) {
 			isExpanded = true;
 			await tick();
@@ -95,7 +318,9 @@
 
 		await tick();
 
-		const headingElement = contentContainerElement?.querySelector?.(`[id="${headingId}"]`);
+		const headingElement = contentContainerElement?.querySelector?.(
+			`[id="${headingId}"]`
+		) as HTMLElement | null;
 		const messagesContainer = document.getElementById('messages-container');
 
 		if (!headingElement || !messagesContainer) {
@@ -117,115 +342,126 @@
 		highlightHeading(headingElement);
 	}
 
-	const updateButtonPosition = (event) => {
-		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);
-		if (
-			!contentContainerElement?.contains(event.target) &&
-			!buttonsContainerElement?.contains(event.target)
-		) {
-			// Don't dismiss when response is actively showing
-			if (floatingButtonsElement?.hasActiveResponse) {
-				return;
-			}
-			closeFloatingButtons();
+	const handleSelectionWithinMessage = () => {
+		if (!contentContainerElement) {
 			return;
 		}
 
-		setTimeout(async () => {
-			await tick();
+		const selection = window.getSelection();
+		if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
+			clearPendingSelection();
+			return;
+		}
 
-			if (!contentContainerElement?.contains(event.target)) return;
+		const range = selection.getRangeAt(0);
+		if (!contentContainerElement.contains(range.commonAncestorContainer)) {
+			return;
+		}
 
-			let selection = window.getSelection();
+		const anchor = serializeSelectionRange(contentContainerElement, range);
+		if (!anchor) {
+			clearPendingSelection();
+			return;
+		}
 
-			if (selection.toString().trim().length > 0) {
-				const range = selection.getRangeAt(0);
-				const rect = range.getBoundingClientRect();
+		const match = currentMessageThreads.find((thread) => sameAnchor(thread.anchor, anchor));
+		const rect = range.getBoundingClientRect();
+		const parentRect = contentContainerElement.getBoundingClientRect();
+		const sourceMessageHash = hashSelectionThreadSource(contentContainerElement.textContent ?? '');
 
-				const parentRect = contentContainerElement.getBoundingClientRect();
+		expandedSelectionThreadId.set(null);
 
-				// Adjust based on parent rect
-				const top = rect.bottom - parentRect.top;
-				const left = rect.left - parentRect.left;
+		if (match) {
+			clearPendingSelection();
+			expandedSelectionThreadId.set(match.id);
+			selection.removeAllRanges();
+			return;
+		}
 
-				if (buttonsContainerElement) {
-					buttonsContainerElement.style.display = 'block';
+		pendingSelection = {
+			quote: anchor.exact,
+			sourceMessageHash,
+			anchor
+		};
+		pendingSelectionPosition = computeToolbarPosition(rect, parentRect);
+	};
 
-					// Calculate space available on the right
-					const spaceOnRight = parentRect.width - left;
-					let halfScreenWidth = $mobile ? window.innerWidth / 2 : window.innerWidth / 3;
+	const handleDocumentMouseUp = (event: MouseEvent) => {
+		setTimeout(() => {
+			const target = event.target as Node | null;
+			const overlayElement = document.getElementById(`floating-buttons-${id}`);
+			const clickedInsideOverlay = target ? overlayElement?.contains(target) : false;
+			if (clickedInsideOverlay) {
+				return;
+			}
 
-					if (spaceOnRight < halfScreenWidth) {
-						const right = parentRect.right - rect.right;
-						buttonsContainerElement.style.right = `${right}px`;
-						buttonsContainerElement.style.left = 'auto';
-					} else {
-						buttonsContainerElement.style.left = `${left}px`;
-						buttonsContainerElement.style.right = 'auto';
-					}
+			const selection = window.getSelection();
+			const hasSelection =
+				Boolean(selection && selection.rangeCount > 0 && selection.toString().trim() !== '') ?? false;
+			const selectionRange = hasSelection && selection ? selection.getRangeAt(0) : null;
+			const selectionInThisMessage =
+				Boolean(selectionRange && contentContainerElement?.contains(selectionRange.commonAncestorContainer)) ?? false;
+			const clickedInsideMessage =
+				Boolean(target && contentContainerElement?.contains(target)) ?? false;
+			const expandedThread = currentMessageThreads.find(
+				(thread) => thread.id === $expandedSelectionThreadId
+			);
 
-					// Smart vertical positioning: show above selection if not enough space below
-					const spaceBelow = parentRect.bottom - rect.bottom;
-					const floatingHeight = buttonsContainerElement.offsetHeight || 40;
-					const margin = 8;
+			if (selectionInThisMessage && clickedInsideMessage) {
+				handleSelectionWithinMessage();
+				return;
+			}
 
-					if (spaceBelow < floatingHeight + margin) {
-						// Not enough space below — position above the selection
-						const topAbove = rect.top - parentRect.top - floatingHeight - margin;
-						buttonsContainerElement.style.top = `${Math.max(0, topAbove)}px`;
-					} else {
-						buttonsContainerElement.style.top = `${top + margin}px`;
-					}
-				}
-			} else {
-				closeFloatingButtons();
+			clearPendingSelection();
+
+			if (!expandedThread) {
+				return;
+			}
+
+			if (hasSelection) {
+				expandedSelectionThreadId.set(null);
+				return;
+			}
+
+			if (!expandedThread.pinned) {
+				expandedSelectionThreadId.set(null);
 			}
 		}, 0);
 	};
 
-	const closeFloatingButtons = () => {
-		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);
-		if (buttonsContainerElement) {
-			buttonsContainerElement.style.display = 'none';
+	const keydownHandler = (event: KeyboardEvent) => {
+		if (event.key !== 'Escape') {
+			return;
 		}
 
-		if (floatingButtonsElement) {
-			// check if closeHandler is defined
-
-			if (typeof floatingButtonsElement?.closeHandler === 'function') {
-				// call the closeHandler function
-				floatingButtonsElement?.closeHandler();
-			}
-		}
-	};
-
-	const keydownHandler = (e) => {
-		if (e.key === 'Escape') {
-			closeFloatingButtons();
+		clearPendingSelection();
+		if (currentMessageThreads.some((thread) => thread.id === $expandedSelectionThreadId)) {
+			expandedSelectionThreadId.set(null);
 		}
 	};
 
 	onMount(() => {
 		if (floatingButtons) {
-			contentContainerElement?.addEventListener('mouseup', updateButtonPosition);
-			document.addEventListener('mouseup', updateButtonPosition);
+			document.addEventListener('mouseup', handleDocumentMouseUp);
 			document.addEventListener('keydown', keydownHandler);
 		}
 
-		// Observe content height for truncation
 		if (contentContainerElement) {
-			resizeObserver = new ResizeObserver(checkTruncation);
+			resizeObserver = new ResizeObserver(() => {
+				checkTruncation();
+				void syncThreadLayouts();
+			});
 			resizeObserver.observe(contentContainerElement);
 		}
 	});
 
 	onDestroy(() => {
 		if (floatingButtons) {
-			contentContainerElement?.removeEventListener('mouseup', updateButtonPosition);
-			document.removeEventListener('mouseup', updateButtonPosition);
+			document.removeEventListener('mouseup', handleDocumentMouseUp);
 			document.removeEventListener('keydown', keydownHandler);
 		}
 		resizeObserver?.disconnect();
+		clearSelectionHighlights();
 	});
 </script>
 
@@ -245,38 +481,37 @@
 			{save}
 			{streaming}
 			transitionMode={currentTransitionMode}
-				sourceIds={(sources ?? []).reduce((acc, s) => {
-					if (!s || typeof s !== 'object') {
-						return acc;
+			sourceIds={(sources ?? []).reduce((acc, s) => {
+				if (!s || typeof s !== 'object') {
+					return acc;
+				}
+
+				let ids = [];
+				getCitationEntries(s).forEach(({ metadata }) => {
+					if (model?.info?.meta?.capabilities?.citations == false) {
+						ids.push('N/A');
+						return;
 					}
 
-					let ids = [];
-					getCitationEntries(s).forEach(({ metadata }) => {
-						if (model?.info?.meta?.capabilities?.citations == false) {
-							ids.push('N/A');
-							return;
-						}
+					const id = metadata?.source ?? 'N/A';
 
-						const id = metadata?.source ?? 'N/A';
+					if (metadata?.name) {
+						ids.push(metadata.name);
+						return;
+					}
 
-						if (metadata?.name) {
-							ids.push(metadata.name);
-							return;
-						}
+					if (
+						typeof id === 'string' &&
+						(id.startsWith('http://') || id.startsWith('https://'))
+					) {
+						ids.push(id);
+					} else {
+						ids.push(s?.source?.name ?? id);
+					}
+				});
 
-						if (
-							typeof id === 'string' &&
-							(id.startsWith('http://') || id.startsWith('https://'))
-						) {
-							ids.push(id);
-						} else {
-							ids.push(s?.source?.name ?? id);
-						}
-					});
+				acc = [...acc, ...ids];
 
-					acc = [...acc, ...ids];
-
-				// remove duplicates
 				return acc.filter((item, index) => acc.indexOf(item) === index);
 			}, [])}
 			{onSourceClick}
@@ -292,17 +527,19 @@
 				const isHtmlArtifact = normalizedLang === 'html';
 				const shouldAutoOpenSvgPreview =
 					$settings?.svgPreviewAutoOpen ?? ($settings?.detectArtifacts ?? true);
+				const autoOpenDismissed = $artifactAutoOpenDismissedMessageId === id;
 
 				if (
 					!$mobile &&
 					$chatId &&
+					!autoOpenDismissed &&
 					((($settings?.detectArtifacts ?? true) && isHtmlArtifact) ||
 						(shouldAutoOpenSvgPreview && isSvgCode))
 				) {
 					if (isSvgCode) {
 						artifactPreviewTarget.set({ messageId: id, type: 'svg', content: code });
 					} else {
-						artifactPreviewTarget.set(null);
+						artifactPreviewTarget.set({ messageId: id, type: 'iframe' });
 					}
 					showOverview.set(false);
 					showArtifacts.set(true);
@@ -311,6 +548,29 @@
 			}}
 		/>
 	</div>
+
+	{#if floatingButtons && model}
+		<FloatingButtons
+			{id}
+			model={model?.id}
+			messages={createMessagesList(history, id)}
+			{actions}
+			{pendingSelection}
+			{pendingSelectionPosition}
+			threads={currentMessageThreads}
+			{threadLayouts}
+			activeThreadId={$expandedSelectionThreadId}
+			onThreadsChange={updateMessageThreads}
+			onSetActiveThread={(threadId) => {
+				clearPendingSelection();
+				expandedSelectionThreadId.set(threadId);
+			}}
+			onClearPendingSelection={clearPendingSelection}
+			onAdd={({ modelId, parentId, messages }) => {
+				onAddMessages({ modelId, parentId, messages });
+			}}
+		/>
+	{/if}
 </div>
 
 {#if needsTruncation && !isExpanded}
@@ -329,21 +589,6 @@
 			</button>
 		</div>
 	</div>
-{/if}
-
-{#if floatingButtons && model}
-	<FloatingButtons
-		bind:this={floatingButtonsElement}
-		{id}
-		model={model?.id}
-		messages={createMessagesList(history, id)}
-		{actions}
-		onAdd={({ modelId, parentId, messages }) => {
-			console.log(modelId, parentId, messages);
-			onAddMessages({ modelId, parentId, messages });
-			closeFloatingButtons();
-		}}
-	/>
 {/if}
 
 <style>
@@ -370,5 +615,19 @@
 			background-color: transparent;
 			box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
 		}
+	}
+
+	:global(::highlight(selection-thread)) {
+		background: transparent;
+		text-decoration: underline dashed 1.5px;
+		text-decoration-color: rgba(59, 130, 246, 0.42);
+		text-underline-offset: 3px;
+	}
+
+	:global(::highlight(selection-thread-active)) {
+		background: rgba(56, 189, 248, 0.08);
+		text-decoration: underline dashed 2px;
+		text-decoration-color: rgba(14, 165, 233, 0.7);
+		text-underline-offset: 3px;
 	}
 </style>

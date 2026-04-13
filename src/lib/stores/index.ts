@@ -57,6 +57,9 @@ export const channels = writable([]);
 export const chats = writable(null);
 export const pinnedChats = writable([]);
 export const tags = writable([]);
+export const folders = writable([]);
+export const selectedFolder = writable(null);
+export const selectedAssistantScene = writable(null);
 
 export const models: Writable<Model[]> = writable([]);
 export const modelsStatus: Writable<'idle' | 'loading' | 'ready' | 'error'> = writable('idle');
@@ -88,8 +91,10 @@ export const showChangelog = writable(false);
 
 export const showControls = writable(false);
 export const showOverview = writable(false);
+export const overviewFocusedMessageId: Writable<string | null> = writable(null);
 export const showArtifacts = writable(false);
 export const showCallOverlay = writable(false);
+export const artifactAutoOpenDismissedMessageId: Writable<string | null> = writable(null);
 export const artifactPreviewTarget: Writable<
 	{ messageId?: string; type?: 'svg' | 'iframe'; content?: string } | null
 > = writable(null);

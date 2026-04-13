@@ -5,6 +5,7 @@
 	const dispatch = createEventDispatcher();
 
 	import {
+		artifactAutoOpenDismissedMessageId,
 		artifactPreviewTarget,
 		chatId,
 		settings,
@@ -253,11 +254,27 @@
 		alive = false;
 	});
 
-	const closeArtifacts = () => {
+	const getActivePreviewMessageId = () =>
+		$artifactPreviewTarget?.messageId ?? contents[selectedContentIdx]?.messageId ?? null;
+
+	const dismissArtifacts = ({ closeControls = false } = {}) => {
+		const messageId = getActivePreviewMessageId();
+
+		if (messageId) {
+			artifactAutoOpenDismissedMessageId.set(messageId);
+		}
+
 		artifactPreviewTarget.set(null);
-		dispatch('close');
-		showControls.set(false);
 		showArtifacts.set(false);
+
+		if (closeControls) {
+			dispatch('close');
+			showControls.set(false);
+		}
+	};
+
+	const closeArtifacts = () => {
+		dismissArtifacts({ closeControls: true });
 	};
 </script>
 
@@ -269,10 +286,7 @@
 			>
 				<button
 					class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
-					on:click={() => {
-						artifactPreviewTarget.set(null);
-						showArtifacts.set(false);
-					}}
+					on:click={() => dismissArtifacts()}
 				>
 					<ArrowLeft className="size-3.5  text-gray-900 dark:text-white" />
 				</button>
