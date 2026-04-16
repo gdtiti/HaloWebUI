@@ -16,8 +16,11 @@
 	import { revealExpandedSection } from '$lib/utils/expanded-section-scroll';
 	import InlineDirtyActions from './InlineDirtyActions.svelte';
 	import { cloneSettingsSnapshot, isSettingsSnapshotEqual } from '$lib/utils/settings-dirty';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const i18n: Writable<any> = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	export let saveHandler: Function;
 
@@ -104,11 +107,12 @@
 		{ value: 'responses', label: 'Responses API' }
 	];
 
-	const YOUTUBE_LANGUAGES = [
+	let YOUTUBE_LANGUAGES = [];
+	$: YOUTUBE_LANGUAGES = [
 		{ value: 'en', label: 'English' },
-		{ value: 'zh-CN', label: '中文（简体）' },
-		{ value: 'zh-TW', label: '中文（繁體）' },
-		{ value: 'ja', label: '日本語' },
+		{ value: 'zh-CN', label: tr('中文（简体）', 'Simplified Chinese') },
+		{ value: 'zh-TW', label: tr('中文（繁體）', 'Traditional Chinese') },
+		{ value: 'ja', label: tr('日本語', 'Japanese') },
 		{ value: 'ko', label: '한국어' },
 		{ value: 'es', label: 'Español' },
 		{ value: 'fr', label: 'Français' },
@@ -158,7 +162,7 @@
 		error: string | null;
 	};
 
-	const NUMERIC_FIELD_LABELS: Record<NumericFieldName, string> = {
+	const NUMERIC_FIELD_LABEL_KEYS: Record<NumericFieldName, string> = {
 		WEB_SEARCH_RESULT_COUNT: '搜索结果数量',
 		WEB_SEARCH_CONCURRENT_REQUESTS: '并发请求数',
 		PLAYWRIGHT_TIMEOUT: 'Playwright 超时',
@@ -389,8 +393,17 @@
 			loc[0] === 'body' && loc[1] === 'web' && typeof loc[2] === 'string' ? loc[2] : null;
 		const message = typeof candidate?.msg === 'string' ? candidate.msg : null;
 
-		if (field && field in NUMERIC_FIELD_LABELS && message) {
-			return `${NUMERIC_FIELD_LABELS[field as NumericFieldName]}: ${message}`;
+		if (field && field in NUMERIC_FIELD_LABEL_KEYS && message) {
+			return `${$i18n.t(NUMERIC_FIELD_LABEL_KEYS[field as NumericFieldName], {
+				defaultValue:
+					field === 'WEB_SEARCH_RESULT_COUNT'
+						? 'Search Result Count'
+						: field === 'WEB_SEARCH_CONCURRENT_REQUESTS'
+							? 'Concurrent Requests'
+							: field === 'PLAYWRIGHT_TIMEOUT'
+								? 'Playwright Timeout'
+								: 'Firecrawl Timeout'
+			})}: ${message}`;
 		}
 
 		if (field && message) {

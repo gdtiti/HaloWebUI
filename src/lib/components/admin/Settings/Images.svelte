@@ -19,9 +19,12 @@
 	import HaloSelect from '$lib/components/common/HaloSelect.svelte';
 	import InlineDirtyActions from './InlineDirtyActions.svelte';
 	import { cloneSettingsSnapshot, isSettingsSnapshotEqual } from '$lib/utils/settings-dirty';
+	import { translateWithDefault } from '$lib/i18n';
 	const dispatch = createEventDispatcher();
 
 	const i18n = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	let loading = false;
 	let initialSnapshot = null;
@@ -992,7 +995,7 @@
 							</svg>
 						</div>
 						<div class="text-base font-semibold text-gray-800 dark:text-gray-100">
-							引擎配置
+							{tr('引擎配置', 'Engine Configuration')}
 						</div>
 					</div>
 
@@ -1397,13 +1400,13 @@
 							</svg>
 						</div>
 						<div class="text-base font-semibold text-gray-800 dark:text-gray-100">
-							生成参数
+							{tr('生成参数', 'Generation Parameters')}
 						</div>
 					</div>
 
 					<div class="space-y-4">
 						<div class="text-sm font-medium text-gray-500 dark:text-gray-400 pl-1">
-							默认设置
+							{tr('默认设置', 'Default Settings')}
 						</div>
 
 						{#if config?.enabled}

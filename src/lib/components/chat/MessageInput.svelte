@@ -71,7 +71,8 @@
 	import {
 		isWebSearchEnabled,
 		normalizeWebSearchMode,
-		type WebSearchMode
+		type WebSearchMode,
+		type WebSearchModeSource
 	} from '$lib/utils/web-search-mode';
 	import {
 		buildWebSearchModeOptions
@@ -121,6 +122,7 @@
 		n?: number | null;
 	} = {};
 	export let webSearchMode: WebSearchMode = 'off';
+	export let webSearchModeSource: WebSearchModeSource = 'default';
 	export let codeInterpreterEnabled = false;
 
 	export let reasoningEffort: string | null = null;
@@ -133,6 +135,8 @@
 		imageGenerationEnabled,
 		imageGenerationOptions,
 		webSearchMode,
+		webSearchModeSource,
+		webSearchModeTouched: webSearchModeSource === 'user',
 		reasoningEffort,
 		maxThinkingTokens
 	});
@@ -312,6 +316,11 @@
 		) {
 			webSearchMode = fallbackWebSearchMode;
 		}
+	};
+
+	const setWebSearchModeFromUser = (nextMode: WebSearchMode) => {
+		webSearchMode = normalizeWebSearchMode(nextMode, 'off');
+		webSearchModeSource = 'user';
 	};
 
 	afterUpdate(() => {
@@ -961,9 +970,7 @@
 												?.profile_image_url ??
 												$models.find((model) => model.id === atSelectedModel.id)?.meta
 													?.profile_image_url ??
-												($i18n.language === 'dg-DG'
-													? `/doge.png`
-													: `${WEBUI_BASE_URL}/static/favicon.png`)}
+												`${WEBUI_BASE_URL}/static/favicon.png`}
 										/>
 										<div class="translate-y-[0.5px]">
 											Talking to <span class=" font-medium"
@@ -1280,13 +1287,13 @@
 														}
 													}
 
-													if (e.key === 'Escape') {
-														atSelectedModel = undefined;
-														selectedToolIds = [];
-														webSearchMode = 'off';
-														imageGenerationEnabled = false;
-													}
-												}}
+														if (e.key === 'Escape') {
+															atSelectedModel = undefined;
+															selectedToolIds = [];
+															setWebSearchModeFromUser('off');
+															imageGenerationEnabled = false;
+														}
+													}}
 												on:paste={async (e) => {
 													e = e.detail.event;
 
@@ -1471,14 +1478,14 @@
 													e.target.style.height = Math.min(e.target.scrollHeight, 320) + 'px';
 												}
 
-												if (e.key === 'Escape') {
-													console.log('Escape');
-													atSelectedModel = undefined;
-													selectedToolIds = [];
-													webSearchMode = 'off';
-													imageGenerationEnabled = false;
-												}
-											}}
+													if (e.key === 'Escape') {
+														console.log('Escape');
+														atSelectedModel = undefined;
+														selectedToolIds = [];
+														setWebSearchModeFromUser('off');
+														imageGenerationEnabled = false;
+													}
+												}}
 											rows="1"
 											on:input={async (e) => {
 												e.target.style.height = '';
@@ -1530,12 +1537,13 @@
 
 								<div class=" flex justify-between mt-1.5 mb-3 mx-0.5 max-w-full" dir="ltr">
 									<div class="ml-1 self-end flex items-center flex-1 max-w-[80%] gap-0.5">
-														<InputMenu
-															bind:selectedToolIds
-															bind:webSearchMode
-															{webSearchModeOptions}
-															bind:imageGenerationEnabled
-															bind:codeInterpreterEnabled
+										<InputMenu
+											bind:selectedToolIds
+											bind:webSearchMode
+											{webSearchModeOptions}
+											onWebSearchModeChange={setWebSearchModeFromUser}
+											bind:imageGenerationEnabled
+											bind:codeInterpreterEnabled
 											{screenCaptureHandler}
 											{inputFilesHandler}
 											uploadFilesHandler={() => {
@@ -1627,13 +1635,16 @@
 
 											{#if activeAssistant}
 												<Tooltip
-													content={`当前助手：${activeAssistant.name}${activeAssistant.description ? `\n${activeAssistant.description}` : ''}`}
+													content={`${$i18n.t('当前助手', { defaultValue: 'Current Assistant' })}: ${activeAssistant.name}${activeAssistant.description ? `\n${activeAssistant.description}` : ''}`}
 													placement="top"
 												>
 													<button
 														type="button"
 														class={`${featureBadgeBaseClass} px-2.5 py-1.5 gap-1.5 max-w-[13rem]`}
-														aria-label={`关闭助手 ${activeAssistant.name}`}
+														aria-label={$i18n.t('关闭助手 {{name}}', {
+															defaultValue: 'Close assistant {{name}}',
+															name: activeAssistant.name
+														})}
 														on:click={() => {
 															onDeactivateAssistant?.();
 														}}
@@ -1654,15 +1665,20 @@
 
 											{#if $_user}
 													{#if webSearchFeatureEnabled && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search) && webSearchActive}
-													<Tooltip content={`${currentWebSearchTooltip}，点击关闭`} placement="top">
+													<Tooltip
+														content={`${currentWebSearchTooltip} ${$i18n.t('点击关闭', {
+															defaultValue: 'Click to disable'
+														})}`}
+														placement="top"
+													>
 														<button
 															type="button"
 															class={webSearchBadgeClass}
-															aria-label={$i18n.t('关闭联网搜索')}
-															on:click={() => {
-																webSearchMode = 'off';
-															}}
-														>
+																aria-label={$i18n.t('关闭联网搜索')}
+																on:click={() => {
+																	setWebSearchModeFromUser('off');
+																}}
+															>
 															<span class={featureBadgeIconSlotClass}>
 																<GlobeAlt
 																	className={`${webSearchIconClass} ${featureBadgePrimaryIconMotionClass}`}

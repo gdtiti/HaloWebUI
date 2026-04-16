@@ -29,38 +29,42 @@
 	import HaloSelect from '$lib/components/common/HaloSelect.svelte';
 	import InlineDirtyActions from './InlineDirtyActions.svelte';
 	import { cloneSettingsSnapshot, isSettingsSnapshotEqual } from '$lib/utils/settings-dirty';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const i18n: Writable<any> = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	type DocumentTab = 'general' | 'embedding' | 'retrieval' | 'danger';
 
 	let selectedTab: DocumentTab = 'general';
 
-	const tabMeta: Record<
+	let tabMeta: Record<
 		DocumentTab,
 		{ label: string; description: string; badgeColor: string; iconColor: string }
-	> = {
+	> = {} as Record<DocumentTab, { label: string; description: string; badgeColor: string; iconColor: string }>;
+	$: tabMeta = {
 		general: {
-			label: '文档处理',
-			description: '内容提取引擎、文本分割、文件限制与云存储集成。',
+			label: tr('文档处理', 'Document Processing'),
+			description: tr('内容提取引擎、文本分割、文件限制与云存储集成。', 'Content extraction engines, text splitting, file limits, and cloud storage integrations.'),
 			badgeColor: 'bg-gray-50 dark:bg-gray-950/30',
 			iconColor: 'text-gray-500 dark:text-gray-400'
 		},
 		embedding: {
-			label: '嵌入模型',
-			description: '配置嵌入引擎、模型和批处理大小。',
+			label: tr('嵌入模型', 'Embedding Models'),
+			description: tr('配置嵌入引擎、模型和批处理大小。', 'Configure the embedding engine, model, and batch size.'),
 			badgeColor: 'bg-violet-50 dark:bg-violet-950/30',
 			iconColor: 'text-violet-500 dark:text-violet-400'
 		},
 		retrieval: {
-			label: '检索设置',
-			description: '全文模式、混合搜索、重排序和 RAG 模板。',
+			label: tr('检索设置', 'Retrieval Settings'),
+			description: tr('全文模式、混合搜索、重排序和 RAG 模板。', 'Full-context mode, hybrid search, reranking, and RAG templates.'),
 			badgeColor: 'bg-cyan-50 dark:bg-cyan-950/30',
 			iconColor: 'text-cyan-500 dark:text-cyan-400'
 		},
 		danger: {
-			label: '危险区域',
-			description: '重置上传目录、向量存储和重建知识库索引。',
+			label: tr('危险区域', 'Danger Zone'),
+			description: tr('重置上传目录、向量存储和重建知识库索引。', 'Reset upload directories, vector storage, and rebuild knowledge indexes.'),
 			badgeColor: 'bg-red-50 dark:bg-red-950/30',
 			iconColor: 'text-red-500 dark:text-red-400'
 		}
@@ -225,91 +229,97 @@
 		}
 	> = {
 		'': {
-			label: '默认（本地解析）',
-			description: '使用 HaloWebUI 本地解析链路处理常见文本、PDF 和 Office 文档，无需额外服务。',
-			requirement: '无需 API 密钥，开箱即用。',
-			limits: '复杂扫描件、版面还原或高质量 OCR 场景建议切换到远程解析引擎。',
-			badge: '推荐'
+			label: tr('默认（本地解析）', 'Default (Local Parsing)'),
+			description: tr(
+				'使用 HaloWebUI 本地解析链路处理常见文本、PDF 和 Office 文档，无需额外服务。',
+				'Use HaloWebUI local parsing for common text, PDF, and Office documents without any extra service.'
+			),
+			requirement: tr('无需 API 密钥，开箱即用。', 'No API key required. Works out of the box.'),
+			limits: tr(
+				'复杂扫描件、版面还原或高质量 OCR 场景建议切换到远程解析引擎。',
+				'For scanned files, layout restoration, or high-quality OCR, a remote extraction engine is recommended.'
+			),
+			badge: tr('推荐', 'Recommended')
 		},
 		tika: {
 			label: 'Tika',
-			description: '通过 Apache Tika 服务补充更多文档格式解析能力。',
-			requirement: '需要可访问的 Tika 服务地址。',
-			limits: '适合通用格式兼容，不强调高质量 OCR。',
+			description: tr('通过 Apache Tika 服务补充更多文档格式解析能力。', 'Extend document format support through an Apache Tika service.'),
+			requirement: tr('需要可访问的 Tika 服务地址。', 'Requires a reachable Tika service URL.'),
+			limits: tr('适合通用格式兼容，不强调高质量 OCR。', 'Best for broad format compatibility, not high-quality OCR.'),
 			officialUrl: 'https://tika.apache.org/',
-			officialLabel: '查看 Apache Tika'
+			officialLabel: tr('查看 Apache Tika', 'View Apache Tika')
 		},
 		docling: {
 			label: 'Docling',
-			description: '通过 Docling 服务增强复杂文档解析和结构还原能力。',
-			requirement: '需要 Docling 服务地址，可选 API 密钥。',
-			limits: '额外参数较多，建议在需要更强文档结构化时启用。',
+			description: tr('通过 Docling 服务增强复杂文档解析和结构还原能力。', 'Use Docling to improve parsing and structural reconstruction for complex documents.'),
+			requirement: tr('需要 Docling 服务地址，可选 API 密钥。', 'Requires a Docling service URL and optionally an API key.'),
+			limits: tr('额外参数较多，建议在需要更强文档结构化时启用。', 'Includes more tuning parameters and is best when stronger document structuring is needed.'),
 			officialUrl: 'https://docling-project.github.io/docling/',
-			officialLabel: '查看 Docling 文档'
+			officialLabel: tr('查看 Docling 文档', 'View Docling Docs')
 		},
 		datalab_marker: {
 			label: 'Datalab Marker API',
-			description: '高级 PDF/Office 解析服务，支持更细粒度 OCR、分页和 LLM 增强。',
-			requirement: '需要 Marker API 密钥，可选自定义基础 URL。',
-			limits: '配置较多，适合高质量版面还原和扫描件场景。',
-			badge: '高级',
+			description: tr('高级 PDF/Office 解析服务，支持更细粒度 OCR、分页和 LLM 增强。', 'Advanced PDF/Office parsing with finer-grained OCR, pagination, and optional LLM enhancement.'),
+			requirement: tr('需要 Marker API 密钥，可选自定义基础 URL。', 'Requires a Marker API key and optionally a custom base URL.'),
+			limits: tr('配置较多，适合高质量版面还原和扫描件场景。', 'More configuration-heavy, but well suited for high-quality layout recovery and scanned documents.'),
+			badge: tr('高级', 'Advanced'),
 			officialUrl: 'https://www.datalab.to/',
-			officialLabel: '查看 Datalab 文档'
+			officialLabel: tr('查看 Datalab 文档', 'View Datalab Docs')
 		},
 		document_intelligence: {
-			label: 'Azure 文档智能',
-			description: '接入 Azure Document Intelligence，进行企业级文档解析。',
-			requirement: '需要服务端点和密钥。',
-			limits: '更适合企业文档流和 Azure 生态。',
+			label: tr('Azure 文档智能', 'Azure Document Intelligence'),
+			description: tr('接入 Azure Document Intelligence，进行企业级文档解析。', 'Use Azure Document Intelligence for enterprise-grade document parsing.'),
+			requirement: tr('需要服务端点和密钥。', 'Requires the service endpoint and key.'),
+			limits: tr('更适合企业文档流和 Azure 生态。', 'Best suited for enterprise document workflows and Azure-based deployments.'),
 			officialUrl: 'https://learn.microsoft.com/azure/ai-services/document-intelligence/',
-			officialLabel: '查看 Azure 文档'
+			officialLabel: tr('查看 Azure 文档', 'View Azure Docs')
 		},
 		mistral_ocr: {
 			label: 'Mistral OCR',
-			description: '使用 Mistral OCR API 处理 PDF 和图片内容。',
-			requirement: '需要 Mistral API 密钥，可自定义兼容基础 URL。',
-			limits: '更偏 OCR 场景，不建议理解成通用文档服务。',
+			description: tr('使用 Mistral OCR API 处理 PDF 和图片内容。', 'Use the Mistral OCR API for PDFs and image-based content.'),
+			requirement: tr('需要 Mistral API 密钥，可自定义兼容基础 URL。', 'Requires a Mistral API key and optionally a custom compatible base URL.'),
+			limits: tr('更偏 OCR 场景，不建议理解成通用文档服务。', 'Focused on OCR use cases rather than being a general document service.'),
 			officialUrl: 'https://docs.mistral.ai/capabilities/document/',
-			officialLabel: '查看 Mistral OCR'
+			officialLabel: tr('查看 Mistral OCR', 'View Mistral OCR')
 		},
 		mineru: {
 			label: 'MinerU',
-			description: '使用官方 MinerU 引擎，支持本地部署或云端模式。',
-			requirement: '本地模式需要自建服务；云端模式需要 API 密钥。',
-			limits: '主要面向 PDF 解析，高级参数建议按官方文档配置。',
+			description: tr('使用官方 MinerU 引擎，支持本地部署或云端模式。', 'Use the official MinerU engine with local deployment or cloud mode.'),
+			requirement: tr('本地模式需要自建服务；云端模式需要 API 密钥。', 'Local mode requires your own service; cloud mode requires an API key.'),
+			limits: tr('主要面向 PDF 解析，高级参数建议按官方文档配置。', 'Mainly focused on PDF parsing; advanced options should follow the official documentation.'),
 			officialUrl: 'https://mineru.net/doc/docs/',
-			officialLabel: '查看 MinerU 文档'
+			officialLabel: tr('查看 MinerU 文档', 'View MinerU Docs')
 		},
 		open_mineru: {
-			label: 'Open MinerU（免费）',
-			description: '免 Token 的轻量文档处理入口，适合快速试用和小文件场景。',
-			requirement: '无需 API 密钥。',
-			limits: 'IP 限频，能力和文件规模明显低于正式 MinerU。',
+			label: tr('Open MinerU（免费）', 'Open MinerU (Free)'),
+			description: tr('免 Token 的轻量文档处理入口，适合快速试用和小文件场景。', 'Lightweight document processing without tokens, ideal for quick trials and small files.'),
+			requirement: tr('无需 API 密钥。', 'No API key required.'),
+			limits: tr('IP 限频，能力和文件规模明显低于正式 MinerU。', 'IP rate limits apply, and both capability and file size support are lower than the full MinerU service.'),
 			officialUrl: 'https://mineru.net/doc/docs/',
-			officialLabel: '查看 Open MinerU 说明'
+			officialLabel: tr('查看 Open MinerU 说明', 'View Open MinerU Info')
 		},
 		doc2x: {
 			label: 'Doc2x',
-			description: '第三方文档解析服务，适合对接 Doc2x 官方或兼容端点。',
-			requirement: '通常需要 API 密钥。',
-			limits: '能力与配额取决于你接入的 Doc2x 服务端。',
+			description: tr('第三方文档解析服务，适合对接 Doc2x 官方或兼容端点。', 'Third-party document parsing service for Doc2x official or compatible endpoints.'),
+			requirement: tr('通常需要 API 密钥。', 'Usually requires an API key.'),
+			limits: tr('能力与配额取决于你接入的 Doc2x 服务端。', 'Capabilities and quotas depend on the Doc2x service you connect to.'),
 			officialUrl: 'https://doc2x.noedgeai.com/',
-			officialLabel: '查看 Doc2x 官网'
+			officialLabel: tr('查看 Doc2x 官网', 'View Doc2x')
 		},
 		paddleocr: {
 			label: 'PaddleOCR',
-			description: '对接第三方或自建 PaddleOCR OCR 接口。',
-			requirement: '需要完整 OCR 接口地址；第三方服务通常还需要访问令牌。',
-			limits: '不同服务商的模型能力、配额和响应字段可能不同。',
+			description: tr('对接第三方或自建 PaddleOCR OCR 接口。', 'Connect to a third-party or self-hosted PaddleOCR API.'),
+			requirement: tr('需要完整 OCR 接口地址；第三方服务通常还需要访问令牌。', 'Requires the full OCR endpoint URL, and third-party services usually also require an access token.'),
+			limits: tr('不同服务商的模型能力、配额和响应字段可能不同。', 'Model quality, quotas, and response fields may vary by provider.'),
 			officialUrl: 'https://aistudio.baidu.com/paddleocr/',
-			officialLabel: '查看 PaddleOCR 官网'
+			officialLabel: tr('查看 PaddleOCR 官网', 'View PaddleOCR')
 		},
 		external: {
-			label: '外部文档加载器',
-			description: '把文件转发到自定义文档解析 API，再回收结构化内容。',
-			requirement: '需要兼容文档解析协议的完整接口 URL 和 API 密钥。',
-			limits: '该接口需要接收文件二进制并返回 Document JSON，不适用于聊天补全接口。',
-			badge: '扩展'
+			label: tr('外部文档加载器', 'External Document Loader'),
+			description: tr('把文件转发到自定义文档解析 API，再回收结构化内容。', 'Forward files to a custom document parsing API and receive structured content back.'),
+			requirement: tr('需要兼容文档解析协议的完整接口 URL 和 API 密钥。', 'Requires a full API URL and key that follow the document parsing protocol.'),
+			limits: tr('该接口需要接收文件二进制并返回 Document JSON，不适用于聊天补全接口。', 'The API must accept file binaries and return Document JSON; it is not a chat-completions endpoint.'),
+			badge: tr('扩展', 'Extension')
 		}
 	};
 
@@ -756,32 +766,49 @@
 			return false;
 		}
 		if (embeddingEngine === '' && embeddingModel.split('/').length - 1 > 1) {
-			toast.error('检测到模型文件系统路径。更新时必须填写模型短名称，无法继续。');
+			toast.error(
+				tr(
+					'检测到模型文件系统路径。更新时必须填写模型短名称，无法继续。',
+					'A model filesystem path was detected. Please use the short model name before updating.'
+				)
+			);
 			return false;
 		}
 		if (embeddingEngine === 'ollama' && embeddingModel === '') {
-			toast.error('请填写 Ollama 嵌入模型名称。');
+			toast.error(tr('请填写 Ollama 嵌入模型名称。', 'Please enter the Ollama embedding model name.'));
 			return false;
 		}
 
 		if (embeddingEngine === 'openai' && embeddingModel === '') {
-			toast.error('请填写 OpenAI 嵌入模型名称。');
+			toast.error(tr('请填写 OpenAI 嵌入模型名称。', 'Please enter the OpenAI embedding model name.'));
 			return false;
 		}
 		if (embeddingEngine === 'azure_openai' && embeddingModel === '') {
-			toast.error('请填写 Azure OpenAI 嵌入模型名称。');
+			toast.error(
+				tr('请填写 Azure OpenAI 嵌入模型名称。', 'Please enter the Azure OpenAI embedding model name.')
+			);
 			return false;
 		}
 
 		if (embeddingEngine === 'openai' && (OpenAIKey === '' || OpenAIUrl === '')) {
-			toast.error('请填写 OpenAI API 基础 URL 和 API 密钥。');
+			toast.error(
+				tr(
+					'请填写 OpenAI API 基础 URL 和 API 密钥。',
+					'Please enter the OpenAI API base URL and API key.'
+				)
+			);
 			return false;
 		}
 		if (
 			embeddingEngine === 'azure_openai' &&
 			(AzureOpenAIKey === '' || AzureOpenAIUrl === '' || AzureOpenAIVersion === '')
 		) {
-			toast.error('请填写 Azure OpenAI API 基础 URL、API 密钥和 API 版本。');
+			toast.error(
+				tr(
+					'请填写 Azure OpenAI API 基础 URL、API 密钥和 API 版本。',
+					'Please enter the Azure OpenAI API base URL, API key, and API version.'
+				)
+			);
 			return false;
 		}
 
@@ -813,9 +840,17 @@
 		updateEmbeddingModelLoading = false;
 
 		if (res?.status === true) {
-			toast.success(`嵌入模型已更新为「${res.embedding_model}」`, {
-				duration: 1000 * 10
-			});
+			toast.success(
+				translateWithDefault(
+					$i18n,
+					'嵌入模型已更新为「{{model}}」',
+					'Embedding model updated to "{{model}}"',
+					{ model: res.embedding_model }
+				),
+				{
+					duration: 1000 * 10
+				}
+			);
 			return true;
 		}
 
@@ -828,7 +863,9 @@
 			return false;
 		}
 		if (['jina', 'external'].includes(rerankingEngine) && rerankingModel !== '' && rerankingApiUrl === '') {
-			toast.error('请填写重排序服务 API 基础 URL。');
+			toast.error(
+				tr('请填写重排序服务 API 基础 URL。', 'Please enter the reranking service API base URL.')
+			);
 			return false;
 		}
 		updateRerankingModelLoading = true;
@@ -848,13 +885,21 @@
 
 		if (res?.status === true) {
 			if (rerankingModel === '') {
-				toast.success('已关闭重排序模型。', {
+				toast.success(tr('已关闭重排序模型。', 'Reranking model disabled.'), {
 					duration: 1000 * 10
 				});
 			} else {
-				toast.success(`重排序模型已更新为「${res.reranking_model}」`, {
+				toast.success(
+					translateWithDefault(
+						$i18n,
+						'重排序模型已更新为「{{model}}」',
+						'Reranking model updated to "{{model}}"',
+						{ model: res.reranking_model }
+					),
+					{
 					duration: 1000 * 10
-				});
+					}
+				);
 			}
 			return true;
 		}
@@ -881,12 +926,12 @@
 			selectedExtractionEngine === 'doc2x' &&
 			String(selectedProviderConfig.api_key ?? '').trim() === ''
 		) {
-			toast.error('请填写 Doc2x API 密钥。');
+			toast.error(tr('请填写 Doc2x API 密钥。', 'Please enter the Doc2x API key.'));
 			return;
 		}
 
 		if (selectedExtractionEngine === 'paddleocr' && String(selectedProviderConfig.server_url ?? '').trim() === '') {
-			toast.error('请填写 PaddleOCR 服务地址。');
+			toast.error(tr('请填写 PaddleOCR 服务地址。', 'Please enter the PaddleOCR service URL.'));
 			return;
 		}
 
@@ -895,7 +940,12 @@
 			RAGConfig.MINERU_API_MODE === 'cloud' &&
 			RAGConfig.MINERU_API_KEY === ''
 		) {
-			toast.error('云端 API 模式下必须填写 MinerU API 密钥。');
+			toast.error(
+				tr(
+					'云端 API 模式下必须填写 MinerU API 密钥。',
+					'The MinerU API key is required in cloud API mode.'
+				)
+			);
 			return;
 		}
 
@@ -903,26 +953,41 @@
 			selectedExtractionEngine === 'external' &&
 			String(RAGConfig.EXTERNAL_DOCUMENT_LOADER_URL ?? '').trim() === ''
 		) {
-			toast.error('请填写外部文档解析接口完整 URL。');
+			toast.error(
+				tr(
+					'请填写外部文档解析接口完整 URL。',
+					'Please enter the full external document parsing URL.'
+				)
+			);
 			return;
 		}
 		if (
 			selectedExtractionEngine === 'external' &&
 			String(RAGConfig.EXTERNAL_DOCUMENT_LOADER_API_KEY ?? '').trim() === ''
 		) {
-			toast.error('请填写外部文档解析接口 API 密钥。');
+			toast.error(
+				tr(
+					'请填写外部文档解析接口 API 密钥。',
+					'Please enter the API key for the external document parsing service.'
+				)
+			);
 			return;
 		}
 		if (selectedExtractionEngine === 'tika' && RAGConfig.TIKA_SERVER_URL === '') {
-			toast.error('请填写 Tika 服务地址。');
+			toast.error(tr('请填写 Tika 服务地址。', 'Please enter the Tika service URL.'));
 			return;
 		}
 		if (selectedExtractionEngine === 'docling' && RAGConfig.DOCLING_SERVER_URL === '') {
-			toast.error('请填写 Docling 服务地址。');
+			toast.error(tr('请填写 Docling 服务地址。', 'Please enter the Docling service URL.'));
 			return;
 		}
 		if (selectedExtractionEngine === 'datalab_marker' && RAGConfig.DATALAB_MARKER_API_KEY === '') {
-			toast.error('请填写 Datalab Marker API 密钥。');
+			toast.error(
+				tr(
+					'请填写 Datalab Marker API 密钥。',
+					'Please enter the Datalab Marker API key.'
+				)
+			);
 			return;
 		}
 		if (
@@ -933,7 +998,12 @@
 			try {
 				JSON.parse(RAGConfig.DATALAB_MARKER_ADDITIONAL_CONFIG);
 			} catch (e) {
-				toast.error('Datalab Marker 附加配置 JSON 格式不正确。');
+				toast.error(
+					tr(
+						'Datalab Marker 附加配置 JSON 格式不正确。',
+						'Datalab Marker additional config is not valid JSON.'
+					)
+				);
 				return;
 			}
 		}
@@ -943,18 +1013,23 @@
 			(RAGConfig.DOCUMENT_INTELLIGENCE_ENDPOINT === '' ||
 				RAGConfig.DOCUMENT_INTELLIGENCE_KEY === '')
 		) {
-			toast.error('请填写 Azure 文档智能的服务端点和 API 密钥。');
+			toast.error(
+				tr(
+					'请填写 Azure 文档智能的服务端点和 API 密钥。',
+					'Please enter the Azure Document Intelligence endpoint and API key.'
+				)
+			);
 			return;
 		}
 		if (selectedExtractionEngine === 'mistral_ocr' && RAGConfig.MISTRAL_OCR_API_KEY === '') {
-			toast.error('请填写 Mistral OCR API 密钥。');
+			toast.error(tr('请填写 Mistral OCR API 密钥。', 'Please enter the Mistral OCR API key.'));
 			return;
 		}
 		if (
 			selectedExtractionEngine === 'mineru' &&
 			String(RAGConfig.MINERU_API_URL ?? '').trim() === ''
 		) {
-			toast.error('请填写 MinerU API 地址。');
+			toast.error(tr('请填写 MinerU API 地址。', 'Please enter the MinerU API URL.'));
 			return;
 		}
 
@@ -962,7 +1037,9 @@
 			try {
 				parseJsonConfig(RAGConfig.DOCLING_PARAMS);
 			} catch (e) {
-				toast.error('Docling 高级参数 JSON 格式不正确。');
+				toast.error(
+					tr('Docling 高级参数 JSON 格式不正确。', 'Docling advanced params are not valid JSON.')
+				);
 				return;
 			}
 		}
@@ -970,7 +1047,9 @@
 			try {
 				parseJsonConfig(RAGConfig.MINERU_PARAMS);
 			} catch (e) {
-				toast.error('MinerU 高级参数 JSON 格式不正确。');
+				toast.error(
+					tr('MinerU 高级参数 JSON 格式不正确。', 'MinerU advanced params are not valid JSON.')
+				);
 				return;
 			}
 		}
@@ -1016,7 +1095,7 @@
 		await tick();
 		startBaselineSync();
 		initialSnapshot = cloneSettingsSnapshot(buildSnapshot());
-		toast.success('文档设置已保存。');
+		toast.success(tr('文档设置已保存。', 'Document settings saved.'));
 		dispatch('save');
 	};
 
@@ -1228,31 +1307,42 @@
 					<div class="space-y-3">
 						<div class="glass-item p-5">
 							<div class="mb-3 flex items-center justify-between gap-4">
-								<div class="text-sm font-medium">默认文件处理模式</div>
+								<div class="text-sm font-medium">
+									{tr('默认文件处理模式', 'Default File Processing Mode')}
+								</div>
 								<HaloSelect
 									bind:value={RAGConfig.FILE_PROCESSING_DEFAULT_MODE}
 									options={[
-										{ value: 'retrieval', label: '检索模式' },
-										{ value: 'full_context', label: '完整上下文模式' },
-										{ value: 'native_file', label: '原生文件模式' }
+										{ value: 'retrieval', label: tr('检索模式', 'Retrieval Mode') },
+										{ value: 'full_context', label: tr('完整上下文模式', 'Full Context Mode') },
+										{ value: 'native_file', label: tr('原生文件模式', 'Native File Mode') }
 									]}
 									className="w-fit"
 								/>
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400">
 								{#if RAGConfig.FILE_PROCESSING_DEFAULT_MODE === 'retrieval'}
-									上传后立即解析、切分并建立向量索引，适合知识库与长文档问答。
+									{tr(
+										'上传后立即解析、切分并建立向量索引，适合知识库与长文档问答。',
+										'Parse, chunk, and index uploads immediately. Best for knowledge bases and long-document Q&A.'
+									)}
 								{:else if RAGConfig.FILE_PROCESSING_DEFAULT_MODE === 'full_context'}
-									上传后只提取全文，不建立索引；发送消息时整份注入模型上下文。
+									{tr(
+										'上传后只提取全文，不建立索引；发送消息时整份注入模型上下文。',
+										'Extract the full text without indexing it, then inject the full content into the model context during chat.'
+									)}
 								{:else}
-									上传后只保存原文件，不做本地解析；优先直接交给支持原生文件输入的模型。
+									{tr(
+										'上传后只保存原文件，不做本地解析；优先直接交给支持原生文件输入的模型。',
+										'Store the original file without local parsing, and prefer models that support native file input.'
+									)}
 								{/if}
 							</div>
 						</div>
 
 						<div class="glass-item p-5">
 							<div class="mb-3 flex items-center justify-between gap-4">
-								<div class="text-sm font-medium">内容提取引擎</div>
+								<div class="text-sm font-medium">{tr('内容提取引擎', 'Content Extraction Engine')}</div>
 								<HaloSelect
 									bind:value={selectedExtractionEngine}
 									options={contentEngineOptions}
@@ -1269,7 +1359,7 @@
 							<div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
 								<div class="rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
 									<div class="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-										接入要求
+										{tr('接入要求', 'Requirements')}
 									</div>
 									<div class="mt-1 text-sm text-gray-700 dark:text-gray-200">
 										{selectedContentEngineMeta.requirement}
@@ -1277,7 +1367,7 @@
 								</div>
 								<div class="rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
 									<div class="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-										能力与限制
+										{tr('能力与限制', 'Capabilities and Limits')}
 									</div>
 									<div class="mt-1 text-sm text-gray-700 dark:text-gray-200">
 										{selectedContentEngineMeta.limits}
@@ -1292,7 +1382,8 @@
 										target="_blank"
 										rel="noreferrer"
 									>
-										{selectedContentEngineMeta.officialLabel ?? '查看官方文档'}
+										{selectedContentEngineMeta.officialLabel ??
+											tr('查看官方文档', 'View Official Docs')}
 									</a>
 								</div>
 							{/if}
@@ -1300,16 +1391,20 @@
 							<div class="mt-4 space-y-3">
 								{#if selectedExtractionEngine === ''}
 									<div class="flex items-center justify-between gap-4">
-										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">PDF 图像提取（OCR）</div>
+										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('PDF 图像提取（OCR）', 'PDF Image Extraction (OCR)')}
+										</div>
 										<Switch bind:state={RAGConfig.PDF_EXTRACT_IMAGES} />
 									</div>
 									<div>
-										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">PDF 加载模式</div>
+										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('PDF 加载模式', 'PDF Loading Mode')}
+										</div>
 										<HaloSelect
 											bind:value={RAGConfig.PDF_LOADING_MODE}
 											options={[
-												{ value: '', label: '按页（默认）' },
-												{ value: 'single', label: '合并为单文档' }
+												{ value: '', label: tr('按页（默认）', 'Per Page (Default)') },
+												{ value: 'single', label: tr('合并为单文档', 'Merge into Single Document') }
 											]}
 											className="w-full"
 										/>
@@ -1317,36 +1412,69 @@
 								{:else if selectedExtractionEngine === 'external'}
 									<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">外部文档加载器 URL</div>
-											<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" bind:value={RAGConfig.EXTERNAL_DOCUMENT_LOADER_URL} placeholder="填写外部文档解析接口完整 URL" />
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('外部文档加载器 URL', 'External Document Loader URL')}
+											</div>
+											<input
+												class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
+												bind:value={RAGConfig.EXTERNAL_DOCUMENT_LOADER_URL}
+												placeholder={tr('填写外部文档解析接口完整 URL', 'Enter the full external document parsing URL')}
+											/>
 											<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-												这里填写完整请求 URL。该接口需兼容外部文档解析协议：接收 `PUT` 文件二进制并返回 `Document JSON`，不适用于 `/v1/chat/completions` 这类聊天补全接口。
+												{tr(
+													'这里填写完整请求 URL。该接口需兼容外部文档解析协议：接收 `PUT` 文件二进制并返回 `Document JSON`，不适用于 `/v1/chat/completions` 这类聊天补全接口。',
+													'Enter the full request URL here. The endpoint must follow the external document parsing protocol: accept file binaries via PUT and return Document JSON. It is not a /v1/chat/completions endpoint.'
+												)}
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-											<SensitiveInput placeholder="填写外部文档加载器 API 密钥" bind:value={RAGConfig.EXTERNAL_DOCUMENT_LOADER_API_KEY} />
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('API Key')}
+											</div>
+											<SensitiveInput
+												placeholder={tr('填写外部文档加载器 API 密钥', 'Enter the external document loader API key')}
+												bind:value={RAGConfig.EXTERNAL_DOCUMENT_LOADER_API_KEY}
+											/>
 										</div>
 									</div>
 								{:else if selectedExtractionEngine === 'tika'}
 									<div>
-										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Tika 服务地址</div>
-										<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="填写 Tika 服务地址，例如 http://localhost:9998" bind:value={RAGConfig.TIKA_SERVER_URL} />
+										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('Tika 服务地址', 'Tika Service URL')}
+										</div>
+										<input
+											class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
+											placeholder={tr('填写 Tika 服务地址，例如 http://localhost:9998', 'Enter the Tika service URL, e.g. http://localhost:9998')}
+											bind:value={RAGConfig.TIKA_SERVER_URL}
+										/>
 									</div>
 								{:else if selectedExtractionEngine === 'docling'}
 									<div class="space-y-3">
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Docling 服务地址</div>
-												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="填写 Docling 服务地址，例如 http://localhost:5001" bind:value={RAGConfig.DOCLING_SERVER_URL} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('Docling 服务地址', 'Docling Service URL')}
+												</div>
+												<input
+													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
+													placeholder={tr('填写 Docling 服务地址，例如 http://localhost:5001', 'Enter the Docling service URL, e.g. http://localhost:5001')}
+													bind:value={RAGConfig.DOCLING_SERVER_URL}
+												/>
 											</div>
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Docling API 密钥</div>
-												<SensitiveInput placeholder="填写 Docling API 密钥" bind:value={RAGConfig.DOCLING_API_KEY} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('Docling API 密钥', 'Docling API Key')}
+												</div>
+												<SensitiveInput
+													placeholder={tr('填写 Docling API 密钥', 'Enter the Docling API key')}
+													bind:value={RAGConfig.DOCLING_API_KEY}
+												/>
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">Docling 高级参数（JSON）</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('Docling 高级参数（JSON）', 'Docling Advanced Params (JSON)')}
+											</div>
 											<Textarea bind:value={RAGConfig.DOCLING_PARAMS} placeholder={'{\n  "image_export_mode": "placeholder"\n}'} />
 										</div>
 									</div>
@@ -1354,56 +1482,73 @@
 									<div class="space-y-3">
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{$i18n.t('API Base URL')}
+												</div>
 												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" bind:value={RAGConfig.DATALAB_MARKER_API_BASE_URL} placeholder="https://www.datalab.to/api/v1/marker" />
 											</div>
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-												<SensitiveInput placeholder="填写 Datalab Marker API 密钥" bind:value={RAGConfig.DATALAB_MARKER_API_KEY} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{$i18n.t('API Key')}
+												</div>
+												<SensitiveInput
+													placeholder={tr('填写 Datalab Marker API 密钥', 'Enter the Datalab Marker API key')}
+													bind:value={RAGConfig.DATALAB_MARKER_API_KEY}
+												/>
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">附加配置（JSON）</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('附加配置（JSON）', 'Additional Config (JSON)')}
+											</div>
 											<Textarea bind:value={RAGConfig.DATALAB_MARKER_ADDITIONAL_CONFIG} placeholder={'{"disable_links": true}'} />
 										</div>
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">使用 LLM 增强</div>
+												<div class="text-sm font-medium">
+													{tr('使用 LLM 增强', 'Use LLM Enhancement')}
+												</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_USE_LLM} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">跳过缓存</div>
+												<div class="text-sm font-medium">{tr('跳过缓存', 'Skip Cache')}</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_SKIP_CACHE} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">强制 OCR</div>
+												<div class="text-sm font-medium">{tr('强制 OCR', 'Force OCR')}</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_FORCE_OCR} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">按页输出</div>
+												<div class="text-sm font-medium">{tr('按页输出', 'Paginate Output')}</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_PAGINATE} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">移除已有 OCR</div>
+												<div class="text-sm font-medium">
+													{tr('移除已有 OCR', 'Strip Existing OCR')}
+												</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_STRIP_EXISTING_OCR} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
-												<div class="text-sm font-medium">禁用图片提取</div>
+												<div class="text-sm font-medium">
+													{tr('禁用图片提取', 'Disable Image Extraction')}
+												</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_DISABLE_IMAGE_EXTRACTION} />
 											</div>
 											<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40 md:col-span-2">
-												<div class="text-sm font-medium">保留行格式</div>
+												<div class="text-sm font-medium">{tr('保留行格式', 'Preserve Line Format')}</div>
 												<Switch bind:state={RAGConfig.DATALAB_MARKER_FORMAT_LINES} />
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">输出格式</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('输出格式', 'Output Format')}
+											</div>
 											<HaloSelect
 												bind:value={RAGConfig.DATALAB_MARKER_OUTPUT_FORMAT}
 												options={[
-													{ value: 'markdown', label: 'Markdown（推荐）' },
-													{ value: 'json', label: 'JSON（结构化）' },
-													{ value: 'html', label: 'HTML（网页）' }
+													{ value: 'markdown', label: tr('Markdown（推荐）', 'Markdown (Recommended)') },
+													{ value: 'json', label: tr('JSON（结构化）', 'JSON (Structured)') },
+													{ value: 'html', label: tr('HTML（网页）', 'HTML (Web)') }
 												]}
 												className="w-full"
 											/>
@@ -1413,40 +1558,62 @@
 									<div class="space-y-3">
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">服务端点</div>
-												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="填写 Azure Document Intelligence 服务端点" bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_ENDPOINT} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('服务端点', 'Service Endpoint')}
+												</div>
+												<input
+													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
+													placeholder={tr('填写 Azure Document Intelligence 服务端点', 'Enter the Azure Document Intelligence endpoint')}
+													bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_ENDPOINT}
+												/>
 											</div>
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-												<SensitiveInput placeholder="填写 Azure Document Intelligence API 密钥" bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_KEY} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{$i18n.t('API Key')}
+												</div>
+												<SensitiveInput
+													placeholder={tr('填写 Azure Document Intelligence API 密钥', 'Enter the Azure Document Intelligence API key')}
+													bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_KEY}
+												/>
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">模型</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('Model')}
+											</div>
 											<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="prebuilt-layout" bind:value={RAGConfig.DOCUMENT_INTELLIGENCE_MODEL} />
 										</div>
 									</div>
 								{:else if selectedExtractionEngine === 'mistral_ocr'}
 									<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('API Base URL')}
+											</div>
 											<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="https://api.mistral.ai/v1" bind:value={RAGConfig.MISTRAL_OCR_API_BASE_URL} />
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-											<SensitiveInput placeholder="填写 Mistral API 密钥" bind:value={RAGConfig.MISTRAL_OCR_API_KEY} />
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('API Key')}
+											</div>
+											<SensitiveInput
+												placeholder={tr('填写 Mistral API 密钥', 'Enter the Mistral API key')}
+												bind:value={RAGConfig.MISTRAL_OCR_API_KEY}
+											/>
 										</div>
 									</div>
 								{:else if selectedExtractionEngine === 'mineru'}
 									<div class="space-y-3">
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-3">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 模式</div>
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('API 模式', 'API Mode')}
+												</div>
 												<HaloSelect
 													bind:value={RAGConfig.MINERU_API_MODE}
 													options={[
-														{ value: 'local', label: '本地部署' },
-														{ value: 'cloud', label: '云端 API' }
+														{ value: 'local', label: tr('本地部署', 'Local Deployment') },
+														{ value: 'cloud', label: tr('云端 API', 'Cloud API') }
 													]}
 													className="w-full"
 													on:change={() => {
@@ -1462,56 +1629,89 @@
 												/>
 											</div>
 											<div class="md:col-span-2">
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 地址</div>
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('API 地址', 'API URL')}
+												</div>
 												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" bind:value={RAGConfig.MINERU_API_URL} placeholder={RAGConfig.MINERU_API_MODE === 'cloud' ? 'https://mineru.net/api/v4' : 'http://localhost:8000'} />
 											</div>
 										</div>
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-												<SensitiveInput placeholder="填写 MinerU API 密钥" bind:value={RAGConfig.MINERU_API_KEY} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{$i18n.t('API Key')}
+												</div>
+												<SensitiveInput
+													placeholder={tr('填写 MinerU API 密钥', 'Enter the MinerU API key')}
+													bind:value={RAGConfig.MINERU_API_KEY}
+												/>
 											</div>
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">请求超时（秒）</div>
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('请求超时（秒）', 'Request Timeout (seconds)')}
+												</div>
 												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" type="number" min="1" bind:value={RAGConfig.MINERU_API_TIMEOUT} placeholder="300" />
 											</div>
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">高级参数（JSON）</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('高级参数（JSON）', 'Advanced Params (JSON)')}
+											</div>
 											<Textarea bind:value={RAGConfig.MINERU_PARAMS} placeholder={'{\n  "enable_ocr": false,\n  "enable_formula": true,\n  "enable_table": true,\n  "language": "en",\n  "model_version": "pipeline",\n  "page_ranges": ""\n}'} />
 										</div>
 									</div>
 								{:else if selectedExtractionEngine === 'open_mineru'}
 									<div>
-										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+											{$i18n.t('API Base URL')}
+										</div>
 										<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.open_mineru.api_base_url} />
 									</div>
 								{:else if selectedExtractionEngine === 'doc2x'}
 									<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('API Base URL')}
+											</div>
 											<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.doc2x.api_base_url} />
 										</div>
 										<div>
-											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
-											<SensitiveInput placeholder="填写 Doc2x API 密钥" bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.doc2x.api_key} />
+											<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+												{$i18n.t('API Key')}
+											</div>
+											<SensitiveInput
+												placeholder={tr('填写 Doc2x API 密钥', 'Enter the Doc2x API key')}
+												bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.doc2x.api_key}
+											/>
 										</div>
 									</div>
 								{:else if selectedExtractionEngine === 'paddleocr'}
 									<div class="space-y-3">
 										<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">OCR 接口地址</div>
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('OCR 接口地址', 'OCR Endpoint URL')}
+												</div>
 												<input class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300" placeholder="https://your-service.aistudio-hub.baidu.com/ocr" bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.paddleocr.server_url} />
 												<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-													优先填写第三方 PaddleOCR OCR 完整接口地址。按官方文档，常见云端地址形态为 `https://你的服务名.aistudio-hub.baidu.com/ocr`；自建服务常见为 `http://127.0.0.1:8080/ocr`。
+													{tr(
+														'优先填写第三方 PaddleOCR OCR 完整接口地址。按官方文档，常见云端地址形态为 `https://你的服务名.aistudio-hub.baidu.com/ocr`；自建服务常见为 `http://127.0.0.1:8080/ocr`。',
+														'Prefer a full third-party PaddleOCR endpoint URL. Typical cloud URLs follow https://your-service.aistudio-hub.baidu.com/ocr, while self-hosted services often look like http://127.0.0.1:8080/ocr.'
+													)}
 												</div>
 											</div>
 											<div>
-												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">访问令牌 / API 密钥</div>
-												<SensitiveInput placeholder="第三方服务通常需要；留空表示不使用鉴权" bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.paddleocr.api_key} />
+												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('访问令牌 / API 密钥', 'Access Token / API Key')}
+												</div>
+												<SensitiveInput
+													placeholder={tr('第三方服务通常需要；留空表示不使用鉴权', 'Usually required by third-party services; leave empty to disable authentication')}
+													bind:value={RAGConfig.DOCUMENT_PROVIDER_CONFIGS.paddleocr.api_key}
+												/>
 												<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-													若填写裸令牌，系统默认按官方常见格式发送 `Authorization: token &lt;TOKEN&gt;`；如服务商要求其他前缀，可直接填写完整值，例如 `Bearer xxx`。
+													{tr(
+														'若填写裸令牌，系统默认按官方常见格式发送 `Authorization: token &lt;TOKEN&gt;`；如服务商要求其他前缀，可直接填写完整值，例如 `Bearer xxx`。',
+														'If you provide a raw token, the system sends it as Authorization: token <TOKEN> by default. If your provider requires another prefix, enter the full value directly, for example Bearer xxx.'
+													)}
 												</div>
 											</div>
 										</div>
@@ -1522,17 +1722,17 @@
 
 						<div class="glass-item p-5">
 							<div class="mb-3 flex items-center justify-between gap-4">
-								<div class="text-sm font-medium">文本切分器</div>
+								<div class="text-sm font-medium">{tr('文本切分器', 'Text Splitter')}</div>
 								<HaloSelect
 									bind:value={RAGConfig.TEXT_SPLITTER}
 									options={[
 										{
 											value: '',
-											label: '默认（按字符）'
+											label: tr('默认（按字符）', 'Default (Characters)')
 										},
 										{
 											value: 'token',
-											label: '按 Token（Tiktoken）'
+											label: tr('按 Token（Tiktoken）', 'By Token (Tiktoken)')
 										}
 									]}
 									className="w-fit"
@@ -1541,9 +1741,14 @@
 
 							<div class="mb-3 flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
 								<div>
-									<div class="text-sm font-medium">Markdown 标题分割器</div>
+									<div class="text-sm font-medium">
+										{tr('Markdown 标题分割器', 'Markdown Header Splitter')}
+									</div>
 									<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-										先按 Markdown 标题切分，再进入字符或 Token 切分。
+										{tr(
+											'先按 Markdown 标题切分，再进入字符或 Token 切分。',
+											'Split by Markdown headings first, then split further by characters or tokens.'
+										)}
 									</div>
 								</div>
 								<Switch bind:state={RAGConfig.ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER} />
@@ -1551,22 +1756,26 @@
 
 							<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 								<div>
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">分块大小</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('分块大小', 'Chunk Size')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="number"
-										placeholder="填写分块大小"
+										placeholder={tr('填写分块大小', 'Enter chunk size')}
 										bind:value={RAGConfig.CHUNK_SIZE}
 										autocomplete="off"
 										min="0"
 									/>
 								</div>
 								<div>
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">分块重叠</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('分块重叠', 'Chunk Overlap')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="number"
-										placeholder="填写分块重叠"
+										placeholder={tr('填写分块重叠', 'Enter chunk overlap')}
 										bind:value={RAGConfig.CHUNK_OVERLAP}
 										autocomplete="off"
 										min="0"
@@ -1574,11 +1783,13 @@
 								</div>
 								{#if RAGConfig.ENABLE_MARKDOWN_HEADER_TEXT_SPLITTER}
 									<div>
-										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">最小块合并阈值</div>
+										<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('最小块合并阈值', 'Minimum Merge Threshold')}
+										</div>
 										<input
 											class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 											type="number"
-											placeholder="0 表示关闭"
+											placeholder={tr('0 表示关闭', '0 disables it')}
 											bind:value={RAGConfig.CHUNK_MIN_SIZE_TARGET}
 											autocomplete="off"
 											min="0"
@@ -1586,11 +1797,13 @@
 									</div>
 								{/if}
 								<div>
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">最小分块大小</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('最小分块大小', 'Minimum Chunk Size')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="number"
-										placeholder="0 表示关闭"
+										placeholder={tr('0 表示关闭', '0 disables it')}
 										bind:value={RAGConfig.CHUNK_MIN_SIZE}
 										autocomplete="off"
 										min="0"
@@ -1600,14 +1813,18 @@
 						</div>
 
 						<div class="glass-item p-5">
-							<div class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">文件限制</div>
+							<div class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+								{tr('文件限制', 'File Limits')}
+							</div>
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 								<div class="md:col-span-2">
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">允许的文件扩展名</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('允许的文件扩展名', 'Allowed File Extensions')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="text"
-										placeholder="例如：pdf, docx, txt；留空表示允许全部"
+										placeholder={tr('例如：pdf, docx, txt；留空表示允许全部', 'e.g. pdf, docx, txt; leave empty to allow all')}
 										bind:value={RAGConfig.ALLOWED_FILE_EXTENSIONS}
 										autocomplete="off"
 									/>
@@ -1623,7 +1840,7 @@
 										<input
 											class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 											type="number"
-											placeholder="留空表示不限制"
+											placeholder={tr('留空表示不限制', 'Leave empty for no limit')}
 											bind:value={RAGConfig.FILE_MAX_SIZE}
 											autocomplete="off"
 											min="0"
@@ -1642,7 +1859,7 @@
 										<input
 											class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 											type="number"
-											placeholder="留空表示不限制"
+											placeholder={tr('留空表示不限制', 'Leave empty for no limit')}
 											bind:value={RAGConfig.FILE_MAX_COUNT}
 											autocomplete="off"
 											min="0"
@@ -1650,22 +1867,26 @@
 									</Tooltip>
 								</div>
 								<div>
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">图片压缩宽度</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('图片压缩宽度', 'Image Compression Width')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="number"
-										placeholder="留空表示不限制"
+										placeholder={tr('留空表示不限制', 'Leave empty for no limit')}
 										bind:value={RAGConfig.FILE_IMAGE_COMPRESSION_WIDTH}
 										autocomplete="off"
 										min="0"
 									/>
 								</div>
 								<div>
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">图片压缩高度</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('图片压缩高度', 'Image Compression Height')}
+									</div>
 									<input
 										class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 										type="number"
-										placeholder="留空表示不限制"
+										placeholder={tr('留空表示不限制', 'Leave empty for no limit')}
 										bind:value={RAGConfig.FILE_IMAGE_COMPRESSION_HEIGHT}
 										autocomplete="off"
 										min="0"
@@ -1675,7 +1896,9 @@
 						</div>
 
 						<div class="glass-item p-5">
-							<div class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">云存储</div>
+							<div class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+								{tr('云存储', 'Cloud Storage')}
+							</div>
 							<div class="space-y-3">
 								<div class="flex items-center justify-between gap-4">
 									<div class="text-sm font-medium">{$i18n.t('Google Drive')}</div>
@@ -1698,19 +1921,25 @@
 					<div class="space-y-3">
 						{#if RAGConfig.FILE_PROCESSING_DEFAULT_MODE !== 'retrieval'}
 							<div class="glass-item border border-amber-200/70 bg-amber-50/80 p-4 text-xs leading-6 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">
-								当前默认文件处理模式不是“检索模式”。这里的嵌入设置仍会影响手动按检索模式处理的文件，以及后续重建索引时的行为，但不会作用于默认按“完整上下文”或“原生文件”保存的上传。
+								{tr(
+									'当前默认文件处理模式不是“检索模式”。这里的嵌入设置仍会影响手动按检索模式处理的文件，以及后续重建索引时的行为，但不会作用于默认按“完整上下文”或“原生文件”保存的上传。',
+									'The current default file processing mode is not "Retrieval Mode". These embedding settings still affect files manually processed in retrieval mode and future index rebuilds, but they do not apply to uploads stored by default in "Full Context Mode" or "Native File Mode".'
+								)}
 							</div>
 						{/if}
 						<div class="glass-item p-5">
 							<div class="flex items-center justify-between gap-4">
-								<div class="text-sm font-medium">嵌入引擎</div>
+								<div class="text-sm font-medium">{tr('嵌入引擎', 'Embedding Engine')}</div>
 								<HaloSelect
 									bind:value={embeddingEngine}
-									placeholder="选择嵌入引擎"
+									placeholder={tr('选择嵌入引擎', 'Select an embedding engine')}
 										options={[
 											{
 												value: '',
-												label: '默认（SentenceTransformers）',
+												label: tr(
+													'默认（SentenceTransformers）',
+													'Default (SentenceTransformers)'
+												),
 												disabled: !runtimeCapabilities.local_embedding_available
 											},
 											{ value: 'ollama', label: $i18n.t('Ollama') },
@@ -1741,22 +1970,29 @@
 							{#if embeddingEngine === 'openai'}
 									<div class="mt-3 space-y-3 border-t border-gray-100/60 pt-3 dark:border-gray-800/40">
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('API 基础 URL', 'API Base URL')}
+											</div>
 											<div class="w-full sm:w-1/2">
 												<input
 													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
-													placeholder="填写 OpenAI 兼容 API 基础 URL"
+													placeholder={tr(
+														'填写 OpenAI 兼容 API 基础 URL',
+														'Enter the OpenAI-compatible API base URL'
+													)}
 													bind:value={OpenAIUrl}
 													required
 												/>
 											</div>
 										</div>
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('API 密钥', 'API Key')}
+											</div>
 											<div class="w-full sm:w-1/2">
 												<SensitiveInput
 													inputClassName="w-full text-sm"
-													placeholder="填写 OpenAI API 密钥"
+													placeholder={tr('填写 OpenAI API 密钥', 'Enter the OpenAI API key')}
 													bind:value={OpenAIKey}
 												/>
 											</div>
@@ -1765,22 +2001,29 @@
 								{:else if embeddingEngine === 'ollama'}
 									<div class="mt-3 space-y-3 border-t border-gray-100/60 pt-3 dark:border-gray-800/40">
 									<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('API 基础 URL', 'API Base URL')}
+										</div>
 										<div class="w-full sm:w-1/2">
 											<input
 												class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
-												placeholder="填写 Ollama 服务地址"
+												placeholder={tr('填写 Ollama 服务地址', 'Enter the Ollama server URL')}
 												bind:value={OllamaUrl}
 												required
 											/>
 										</div>
 									</div>
 									<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
+										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('API 密钥', 'API Key')}
+										</div>
 										<div class="w-full sm:w-1/2">
 											<SensitiveInput
 												inputClassName="w-full text-sm"
-												placeholder="如有鉴权请填写 API 密钥"
+												placeholder={tr(
+													'如有鉴权请填写 API 密钥',
+													'Enter the API key if authentication is required'
+												)}
 												bind:value={OllamaKey}
 												required={false}
 											/>
@@ -1790,7 +2033,9 @@
 								{:else if embeddingEngine === 'azure_openai'}
 									<div class="mt-3 space-y-3 border-t border-gray-100/60 pt-3 dark:border-gray-800/40">
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 基础 URL</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('API 基础 URL', 'API Base URL')}
+											</div>
 											<div class="w-full sm:w-1/2">
 												<input
 													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
@@ -1801,17 +2046,24 @@
 											</div>
 										</div>
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 密钥</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('API 密钥', 'API Key')}
+											</div>
 											<div class="w-full sm:w-1/2">
 												<SensitiveInput
 													inputClassName="w-full text-sm"
-													placeholder="填写 Azure OpenAI API 密钥"
+													placeholder={tr(
+														'填写 Azure OpenAI API 密钥',
+														'Enter the Azure OpenAI API key'
+													)}
 													bind:value={AzureOpenAIKey}
 												/>
 											</div>
 										</div>
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">API 版本</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('API 版本', 'API Version')}
+											</div>
 											<div class="w-full sm:w-1/2">
 												<input
 													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
@@ -1826,7 +2078,9 @@
 						</div>
 
 						<div class="glass-item p-5">
-							<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">嵌入模型</div>
+							<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+								{tr('嵌入模型', 'Embedding Model')}
+							</div>
 							{#if embeddingEngine === 'ollama'}
 								<input
 									class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
@@ -1867,13 +2121,18 @@
 							{/if}
 
 							<div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-								更换嵌入模型后，通常需要重新导入或重建全部文档索引。
+								{tr(
+									'更换嵌入模型后，通常需要重新导入或重建全部文档索引。',
+									'After changing the embedding model, you typically need to re-import documents or rebuild the full index.'
+								)}
 							</div>
 
 								{#if embeddingEngine === 'ollama' || embeddingEngine === 'openai' || embeddingEngine === 'azure_openai'}
 									<div class="mt-3 space-y-3 border-t border-gray-100/60 pt-3 dark:border-gray-800/40">
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">嵌入批大小</div>
+											<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+												{tr('嵌入批大小', 'Embedding Batch Size')}
+											</div>
 											<input
 												bind:value={embeddingBatchSize}
 												type="number"
@@ -1885,18 +2144,28 @@
 										</div>
 										<div class="flex items-center justify-between gap-4">
 											<div>
-												<div class="text-xs font-medium text-gray-500 dark:text-gray-400">异步嵌入处理</div>
+												<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('异步嵌入处理', 'Asynchronous Embedding Processing')}
+												</div>
 												<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-													并发执行嵌入批处理以加速文档处理，如遇速率限制可关闭。
+													{tr(
+														'并发执行嵌入批处理以加速文档处理，如遇速率限制可关闭。',
+														'Run embedding batches concurrently to speed up document processing; disable it if you hit rate limits.'
+													)}
 												</div>
 											</div>
 											<Switch bind:state={enableAsyncEmbedding} />
 										</div>
 										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 											<div>
-												<div class="text-xs font-medium text-gray-500 dark:text-gray-400">嵌入并发请求数</div>
+												<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+													{tr('嵌入并发请求数', 'Concurrent Embedding Requests')}
+												</div>
 												<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-													限制并发嵌入请求数，`0` 表示不限制。
+													{tr(
+														'限制并发嵌入请求数，`0` 表示不限制。',
+														'Limit concurrent embedding requests; `0` means no limit.'
+													)}
 												</div>
 											</div>
 											<input
@@ -1921,12 +2190,15 @@
 					<div class="space-y-3">
 						{#if RAGConfig.FILE_PROCESSING_DEFAULT_MODE !== 'retrieval'}
 							<div class="glass-item border border-sky-200/70 bg-sky-50/80 p-4 text-xs leading-6 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/20 dark:text-sky-300">
-								当前默认文件处理模式不是“检索模式”。这里的召回、混合搜索和重排设置主要影响已建立索引的知识库内容，以及后续改为检索模式处理的文件。
+								{tr(
+									'当前默认文件处理模式不是“检索模式”。这里的召回、混合搜索和重排设置主要影响已建立索引的知识库内容，以及后续改为检索模式处理的文件。',
+									'The current default file processing mode is not "Retrieval Mode". These recall, hybrid search, and reranking settings mainly affect indexed knowledge content and files processed in retrieval mode later.'
+								)}
 							</div>
 						{/if}
 						<div class="glass-item p-5">
 							<div class="flex items-center justify-between gap-4">
-								<div class="text-sm font-medium">全文模式</div>
+								<div class="text-sm font-medium">{tr('全文模式', 'Full Context Mode')}</div>
 								<Tooltip
 									content={RAGConfig.RAG_FULL_CONTEXT
 										? $i18n.t(
@@ -1945,7 +2217,9 @@
 							<div class="glass-item p-5">
 								<div class="space-y-4">
 									<div class="flex items-center justify-between gap-4">
-										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">混合搜索</div>
+										<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+											{tr('混合搜索', 'Hybrid Search')}
+										</div>
 										<Switch bind:state={RAGConfig.ENABLE_RAG_HYBRID_SEARCH} />
 									</div>
 
@@ -1953,25 +2227,30 @@
 											<div class="space-y-4 border-t border-gray-100/60 pt-4 dark:border-gray-800/40">
 												<div class="flex items-center justify-between gap-4 rounded-2xl border border-gray-200/70 bg-white/60 px-4 py-3 dark:border-gray-700/70 dark:bg-gray-900/40">
 													<div>
-														<div class="text-sm font-medium">BM25 富化文本</div>
+														<div class="text-sm font-medium">
+															{tr('BM25 富化文本', 'Enriched BM25 Text')}
+														</div>
 														<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-															把文件名、标题、标题层级和摘要拼入 BM25 文本，提升词法召回率。
+															{tr(
+																'把文件名、标题、标题层级和摘要拼入 BM25 文本，提升词法召回率。',
+																'Append the file name, title, heading hierarchy, and summary to the BM25 text to improve lexical recall.'
+															)}
 														</div>
 													</div>
 													<Switch bind:state={RAGConfig.ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS} />
 												</div>
 												<div>
 													<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-														重排序引擎
+														{tr('重排序引擎', 'Reranking Engine')}
 													</div>
 												<select
 													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 													bind:value={rerankingEngine}
 													on:change={handleRerankingEngineChange}
 												>
-													<option value="local">本地模型</option>
+													<option value="local">{tr('本地模型', 'Local Model')}</option>
 													<option value="jina">Jina</option>
-													<option value="external">外部 API</option>
+													<option value="external">{tr('外部 API', 'External API')}</option>
 												</select>
 											</div>
 
@@ -1979,7 +2258,7 @@
 												<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 													<div>
 														<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-															API 基础 URL
+															{tr('API 基础 URL', 'API Base URL')}
 														</div>
 														<input
 															class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
@@ -1989,10 +2268,13 @@
 													</div>
 													<div>
 														<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-															API 密钥
+															{tr('API 密钥', 'API Key')}
 														</div>
 														<SensitiveInput
-															placeholder="填写重排序服务 API 密钥"
+															placeholder={tr(
+																'填写重排序服务 API 密钥',
+																'Enter the reranking service API key'
+															)}
 															required={false}
 															bind:value={rerankingApiKey}
 														/>
@@ -2002,7 +2284,7 @@
 
 											<div>
 												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-													重排序模型
+													{tr('重排序模型', 'Reranking Model')}
 												</div>
 												<div class="flex w-full gap-2">
 													<input
@@ -2055,12 +2337,15 @@
 											{#if RAGConfig.ENABLE_RAG_HYBRID_SEARCH === true}
 												<div>
 													<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-														重排序候选数
+														{tr('重排序候选数', 'Reranking Candidate Count')}
 													</div>
 													<input
 														class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 														type="number"
-														placeholder="填写重排序候选数"
+														placeholder={tr(
+															'填写重排序候选数',
+															'Enter reranking candidate count'
+														)}
 														bind:value={RAGConfig.TOP_K_RERANKER}
 														autocomplete="off"
 														min="0"
@@ -2074,7 +2359,9 @@
 											<div class="space-y-4 border-t border-gray-100/60 pt-4 dark:border-gray-800/40">
 												<div>
 													<div class="mb-1.5 flex items-center justify-between">
-														<div class="text-xs font-medium text-gray-500 dark:text-gray-400">BM25 权重</div>
+														<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+															{tr('BM25 权重', 'BM25 Weight')}
+														</div>
 														<button
 															class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:text-white"
 															type="button"
@@ -2087,15 +2374,17 @@
 																}
 															}}
 														>
-															{isBm25WeightCustom ? '自定义' : '默认'}
+															{isBm25WeightCustom
+																? tr('自定义', 'Custom')
+																: tr('默认', 'Default')}
 														</button>
 													</div>
 													{#if isBm25WeightCustom}
 														<div class="space-y-2">
 															<div class="flex items-center justify-between text-xs text-gray-400">
-																<span>语义</span>
+																<span>{tr('语义', 'Semantic')}</span>
 																<span>{RAGConfig.RAG_HYBRID_SEARCH_BM25_WEIGHT ?? 0.5}</span>
-																<span>词法</span>
+																<span>{tr('词法', 'Lexical')}</span>
 															</div>
 															<input
 																class="w-full"
@@ -2124,20 +2413,23 @@
 
 											<div>
 												<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-													相关性阈值
+													{tr('相关性阈值', 'Relevance Threshold')}
 												</div>
 												<input
 													class="glass-input w-full px-3 py-2 text-sm dark:text-gray-300"
 													type="number"
 													step="0.01"
-													placeholder="填写阈值分数"
+													placeholder={tr('填写阈值分数', 'Enter the threshold score')}
 													bind:value={RAGConfig.RELEVANCE_THRESHOLD}
 													autocomplete="off"
 													min="0.0"
-													title="分数范围为 0.0 到 1.0。"
+													title={tr('分数范围为 0.0 到 1.0。', 'Score ranges from 0.0 to 1.0.')}
 												/>
 												<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-													设置后，仅返回分数大于或等于该阈值的结果。
+													{tr(
+														'设置后，仅返回分数大于或等于该阈值的结果。',
+														'When set, only results with a score greater than or equal to this threshold are returned.'
+													)}
 												</div>
 											</div>
 										</div>
@@ -2150,30 +2442,44 @@
 							<div class="space-y-4">
 								<div>
 									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-										RAG 系统上下文
+										{tr('RAG 系统上下文', 'RAG System Context')}
 									</div>
 									<Tooltip
-										content="固定追加在 RAG 上下文前的系统指令，可提升 KV Cache 复用稳定性。"
+										content={tr(
+											'固定追加在 RAG 上下文前的系统指令，可提升 KV Cache 复用稳定性。',
+											'A fixed system instruction prepended to the RAG context can improve KV cache reuse stability.'
+										)}
 										placement="top-start"
 										className="w-full"
 									>
 										<Textarea
 											bind:value={RAGConfig.RAG_SYSTEM_CONTEXT}
-											placeholder="留空表示不使用固定系统前缀；也可以填写面向 RAG 查询的系统指令"
+											placeholder={tr(
+												'留空表示不使用固定系统前缀；也可以填写面向 RAG 查询的系统指令',
+												'Leave empty to disable the fixed system prefix, or enter a system instruction for RAG queries'
+											)}
 										/>
 									</Tooltip>
 								</div>
 
 								<div class="border-t border-gray-100/60 pt-4 dark:border-gray-800/40">
-									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">RAG 提示模板</div>
+									<div class="mb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+										{tr('RAG 提示模板', 'RAG Prompt Template')}
+									</div>
 									<Tooltip
-										content="留空时使用默认提示词，也可以在这里填写自定义模板。"
+										content={tr(
+											'留空时使用默认提示词，也可以在这里填写自定义模板。',
+											'Leave empty to use the default prompt, or enter a custom template here.'
+										)}
 										placement="top-start"
 										className="w-full"
 									>
 										<Textarea
 											bind:value={RAGConfig.RAG_TEMPLATE}
-											placeholder="留空表示使用默认提示词；也可以填写自定义模板"
+											placeholder={tr(
+												'留空表示使用默认提示词；也可以填写自定义模板',
+												'Leave empty to use the default prompt, or enter a custom template'
+											)}
 										/>
 									</Tooltip>
 								</div>

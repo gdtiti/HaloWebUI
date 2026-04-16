@@ -28,8 +28,11 @@
 	import Reset from '$lib/components/icons/Reset.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const i18n = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	const cardColorMap: Record<string, { bg: string; text: string }> = {
 		blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
@@ -38,10 +41,29 @@
 		emerald: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' }
 	};
 
-	const tabMeta: Record<string, { label: string; description: string; badgeColor: string; iconColor: string }> = {
-		overview: { label: '总览', description: '查看消息量、Token 用量和活跃度概览。', badgeColor: 'bg-blue-50 dark:bg-blue-950/30', iconColor: 'text-blue-500 dark:text-blue-400' },
-		models:   { label: '模型', description: '按模型查看用量统计和趋势。', badgeColor: 'bg-violet-50 dark:bg-violet-950/30', iconColor: 'text-violet-500 dark:text-violet-400' },
-		users:    { label: '用户', description: '按用户查看活跃度和 Token 消耗。', badgeColor: 'bg-emerald-50 dark:bg-emerald-950/30', iconColor: 'text-emerald-500 dark:text-emerald-400' }
+	let tabMeta: Record<
+		string,
+		{ label: string; description: string; badgeColor: string; iconColor: string }
+	> = {};
+	$: tabMeta = {
+		overview: {
+			label: tr('总览', 'Overview'),
+			description: tr('查看消息量、Token 用量和活跃度概览。', 'View message volume, token usage, and activity at a glance.'),
+			badgeColor: 'bg-blue-50 dark:bg-blue-950/30',
+			iconColor: 'text-blue-500 dark:text-blue-400'
+		},
+		models: {
+			label: tr('模型', 'Models'),
+			description: tr('按模型查看用量统计和趋势。', 'Inspect usage statistics and trends by model.'),
+			badgeColor: 'bg-violet-50 dark:bg-violet-950/30',
+			iconColor: 'text-violet-500 dark:text-violet-400'
+		},
+		users: {
+			label: tr('用户', 'Users'),
+			description: tr('按用户查看活跃度和 Token 消耗。', 'Inspect activity and token consumption by user.'),
+			badgeColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+			iconColor: 'text-emerald-500 dark:text-emerald-400'
+		}
 	};
 
 	$: activeTabMeta = tabMeta[activeTab];
@@ -385,7 +407,7 @@
 						<div class="inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-full border border-gray-200/80 bg-white/80 px-3.5 text-xs font-medium leading-none text-gray-600 dark:border-gray-700/80 dark:bg-gray-900/70 dark:text-gray-300">
 							<span class="leading-none text-gray-400 dark:text-gray-500">{$i18n.t('Settings')}</span>
 							<span class="leading-none text-gray-300 dark:text-gray-600">/</span>
-							<span class="leading-none text-gray-900 dark:text-white">{$i18n.t('数据分析')}</span>
+							<span class="leading-none text-gray-900 dark:text-white">{tr('数据分析', 'Analytics')}</span>
 						</div>
 
 						<!-- Icon badge + title + description -->
@@ -426,15 +448,15 @@
 					<div class="inline-flex max-w-full flex-wrap items-center gap-2 self-start rounded-2xl bg-gray-100 p-1 dark:bg-gray-850 @[64rem]:ml-auto @[64rem]:mt-11 @[64rem]:flex-nowrap @[64rem]:justify-end @[64rem]:shrink-0">
 						<button type="button" class={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`} on:click={() => { exitSelectionMode(); activeTab = 'overview'; }}>
 							<ChartBar className="size-4" />
-							<span>{$i18n.t('总览')}</span>
+							<span>{tr('总览', 'Overview')}</span>
 						</button>
 						<button type="button" class={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${activeTab === 'models' ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`} on:click={() => { activeTab = 'models'; }}>
 							<Cube className="size-4" />
-							<span>{$i18n.t('模型')}</span>
+							<span>{tr('模型', 'Models')}</span>
 						</button>
 						<button type="button" class={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${activeTab === 'users' ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`} on:click={() => { exitSelectionMode(); activeTab = 'users'; }}>
 							<UsersSolid className="size-4" />
-							<span>{$i18n.t('用户')}</span>
+							<span>{tr('用户', 'Users')}</span>
 						</button>
 					</div>
 				</div>

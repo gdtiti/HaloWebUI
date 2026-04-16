@@ -74,10 +74,13 @@
 	import {
 		getPreferredWebSearchMode,
 		normalizeWebSearchMode,
-		type WebSearchMode
+		normalizeWebSearchModeSource,
+		type WebSearchMode,
+		type WebSearchModeSource
 	} from '$lib/utils/web-search-mode';
 	import { getFunctionPipeRootId } from '$lib/utils/image-generation';
 	import { applyUserSettingsSnapshot } from '$lib/utils/user-settings';
+	import { buildWebSearchModeOptions } from '$lib/utils/native-web-search';
 
 	import { generateChatCompletion } from '$lib/apis/ollama';
 	import {
@@ -375,6 +378,7 @@
 		n?: number | null;
 	} = {};
 	let webSearchMode: WebSearchMode = 'off';
+	let webSearchModeSource: WebSearchModeSource = 'default';
 	let codeInterpreterEnabled = false;
 
 	let chat = null;
@@ -434,6 +438,76 @@
 	const getModelDefaultReasoningEffort = (model: Model | null | undefined): string | null =>
 		normalizeReasoningEffortValue((model as any)?.info?.params?.reasoning_effort ?? null);
 
+	const getResolvedSelectedWebSearchModels = (): Model[] => {
+		const ids = getResolvedSelectedModelIds();
+		if (ids.length === 0) {
+			return [];
+		}
+
+		const resolved = ids
+			.map((id) => getModelById(id))
+			.filter((model): model is Model => Boolean(model));
+		return resolved.length === ids.length ? resolved : [];
+	};
+
+	const getModelBuiltinWebSearchPreference = (model: Model | null | undefined): boolean | null => {
+		const value =
+			(model as any)?.info?.meta?.builtin_tool_config?.ENABLE_WEB_SEARCH_TOOL ??
+			(model as any)?.meta?.builtin_tool_config?.ENABLE_WEB_SEARCH_TOOL;
+		return typeof value === 'boolean' ? value : null;
+	};
+
+	const pickModelDefaultWebSearchMode = (selectedModels: Model[]): WebSearchMode => {
+		const availableModes = new Set(
+			buildWebSearchModeOptions(
+				(key, options) => get(i18n).t(key, options),
+				$config,
+				selectedModels
+			)
+				.filter((option) => option.disabled !== true)
+				.map((option) => option.value)
+		);
+
+		return (
+			(['auto', 'native', 'halo', 'off'] as WebSearchMode[]).find((mode) =>
+				availableModes.has(mode)
+			) ?? 'off'
+		);
+	};
+
+	const getSelectionDrivenWebSearchState = (): {
+		mode: WebSearchMode;
+		source: WebSearchModeSource;
+	} | null => {
+		const requestedIds = selectedModelIds.filter(
+			(id): id is string => typeof id === 'string' && id.trim() !== ''
+		);
+		const resolvedModels = getResolvedSelectedWebSearchModels();
+
+		if (requestedIds.length > 0 && resolvedModels.length !== requestedIds.length) {
+			return null;
+		}
+
+		const fallbackMode = getPreferredDefaultWebSearchMode();
+		if (resolvedModels.length === 0) {
+			return { mode: fallbackMode, source: 'default' };
+		}
+
+		const preferences = resolvedModels.map(getModelBuiltinWebSearchPreference);
+		if (resolvedModels.length > 1 && preferences.some((value) => value === false)) {
+			return { mode: 'off', source: 'model' };
+		}
+
+		if (preferences.some((value) => value === true)) {
+			return {
+				mode: pickModelDefaultWebSearchMode(resolvedModels),
+				source: 'model'
+			};
+		}
+
+		return { mode: fallbackMode, source: 'default' };
+	};
+
 	// J-3-01: Reactive flag to avoid calling createMessagesList just for emptiness check in template
 	let hasMessages = false;
 	$: hasMessages = history.currentId !== null;
@@ -467,10 +541,11 @@
 	let params = {};
 
 	let reasoningEffort: string | null = null;
-	let maxThinkingTokens: number | null = null;
-	let lastFreshChatRequest = '';
-	// Flag to prevent sessionStorage recovery from overriding a deliberate fresh chat reset
-	let freshChatActive = false;
+		let maxThinkingTokens: number | null = null;
+		let lastFreshChatRequest = '';
+		// Flag to prevent sessionStorage recovery from overriding a deliberate fresh chat reset
+		let freshChatActive = false;
+		let webSearchSelectionSyncReady = false;
 
 	// Bidirectional sync: Controls sidebar params ↔ inline ThinkingControl
 	// 用缓存值打断 reactive 级联：正向同步更新缓存 → 反向 onChange 检测到缓存一致则跳过
@@ -687,11 +762,9 @@
 		}
 
 		const requestMessages = await buildFloatingRequestMessages(messages);
-		const requestedWebSearchMode =
-			$config?.features?.enable_web_search &&
-			($user?.role === 'admin' || $user?.permissions?.features?.web_search)
-				? normalizeWebSearchMode(webSearchMode, 'off')
-				: 'off';
+		const requestedWebSearchMode = canUseChatWebSearch()
+			? normalizeWebSearchMode(webSearchMode, 'off')
+			: 'off';
 		const requestFiles = collectFloatingRequestFiles(messages);
 
 		return {
@@ -761,6 +834,14 @@
 
 	const getPreferredDefaultWebSearchMode = (): WebSearchMode =>
 		getPreferredWebSearchMode($settings, 'off');
+
+	const isChatWebSearchFeatureEnabled = () =>
+		Boolean($config?.features?.enable_halo_web_search ?? $config?.features?.enable_web_search) ||
+		Boolean($config?.features?.enable_native_web_search);
+
+	const canUseChatWebSearch = () =>
+		isChatWebSearchFeatureEnabled() &&
+		($user?.role === 'admin' || $user?.permissions?.features?.web_search);
 
 	const decodeTokenUserId = (token: string | null | undefined): string | null => {
 		if (!token || typeof atob !== 'function') {
@@ -876,19 +957,54 @@
 		return null;
 	})();
 
-	const resolveStoredWebSearchMode = (
-		value: { webSearchMode?: unknown; webSearchEnabled?: unknown } | null | undefined,
+	const resolveStoredWebSearchState = (
+		value:
+			| {
+					webSearchMode?: unknown;
+					webSearchEnabled?: unknown;
+					webSearchModeSource?: unknown;
+					webSearchModeTouched?: unknown;
+			  }
+			| null
+			| undefined,
 		fallback: WebSearchMode = getPreferredDefaultWebSearchMode()
-	): WebSearchMode => {
+	): { mode: WebSearchMode; source: WebSearchModeSource } => {
+		const hasLegacyState =
+			value?.webSearchMode !== undefined || value?.webSearchEnabled === true;
+
 		if (value?.webSearchMode !== undefined) {
-			return normalizeWebSearchMode(value.webSearchMode, fallback);
+			return {
+				mode: normalizeWebSearchMode(value.webSearchMode, fallback),
+				source:
+					value?.webSearchModeSource !== undefined
+						? normalizeWebSearchModeSource(value.webSearchModeSource, 'default')
+						: value?.webSearchModeTouched === true || hasLegacyState
+							? 'user'
+							: 'default'
+			};
 		}
 
 		if (value?.webSearchEnabled === true) {
-			return 'halo';
+			return {
+				mode: 'halo',
+				source:
+					value?.webSearchModeSource !== undefined
+						? normalizeWebSearchModeSource(value.webSearchModeSource, 'default')
+						: value?.webSearchModeTouched === true || hasLegacyState
+							? 'user'
+							: 'default'
+			};
 		}
 
-		return fallback;
+		return {
+			mode: fallback,
+			source:
+				value?.webSearchModeSource !== undefined
+					? normalizeWebSearchModeSource(value.webSearchModeSource, 'default')
+					: value?.webSearchModeTouched === true
+						? 'user'
+						: 'default'
+		};
 	};
 
 	const getLegacyChatSessionStateKey = (id: string | null | undefined = $chatId || chatIdProp) =>
@@ -970,7 +1086,9 @@
 				return false;
 			}
 
-			webSearchMode = resolveStoredWebSearchMode(state);
+			const restoredWebSearchState = resolveStoredWebSearchState(state);
+			webSearchMode = restoredWebSearchState.mode;
+			webSearchModeSource = restoredWebSearchState.source;
 			if (state.reasoningEffort !== undefined) {
 				reasoningEffort = state.reasoningEffort ?? null;
 			}
@@ -1012,10 +1130,9 @@
 		localStorage.setItem(
 			scopedKey,
 			JSON.stringify({
-				webSearchMode: resolveStoredWebSearchMode(
-					{ webSearchMode },
-					getPreferredDefaultWebSearchMode()
-				),
+				webSearchMode,
+				webSearchModeSource,
+				webSearchModeTouched: webSearchModeSource === 'user',
 				activeAssistant,
 				systemPrompt: typeof params?.system === 'string' ? params.system : null,
 				imageGenerationEnabled,
@@ -1027,6 +1144,50 @@
 		);
 		if (legacyKey !== scopedKey) {
 			localStorage.removeItem(legacyKey);
+		}
+	};
+
+	const handleMessageInputChange = (input) => {
+		const newRE = normalizeReasoningEffortValue(input.reasoningEffort ?? null);
+		const newMT = normalizeThinkingTokenValue(input.maxThinkingTokens ?? null);
+		const oldRE = normalizeReasoningEffortValue(params?.reasoning_effort ?? null);
+		const oldMT = normalizeThinkingTokenValue(params?.max_thinking_tokens ?? null);
+		if (newRE !== oldRE || newMT !== oldMT) {
+			const finalMT = newRE ? null : newMT;
+			_lastSyncedEffort = newRE;
+			_lastSyncedTokens = finalMT;
+			params = {
+				...params,
+				reasoning_effort: newRE,
+				max_thinking_tokens: finalMT
+			};
+		}
+
+		const nextWebSearchState = resolveStoredWebSearchState(
+			{
+				webSearchMode: input.webSearchMode,
+				webSearchModeSource: input.webSearchModeSource,
+				webSearchModeTouched: input.webSearchModeTouched
+			},
+			getPreferredDefaultWebSearchMode()
+		);
+		webSearchMode = nextWebSearchState.mode;
+		webSearchModeSource = nextWebSearchState.source;
+		reasoningEffort = newRE;
+		maxThinkingTokens = newMT;
+		persistChatSessionState();
+
+		const persistedInput = {
+			...input,
+			webSearchMode: nextWebSearchState.mode,
+			webSearchModeSource: nextWebSearchState.source,
+			webSearchModeTouched: nextWebSearchState.source === 'user'
+		};
+
+		if (input.prompt) {
+			writeChatInputState(persistedInput, $chatId);
+		} else {
+			removeChatInputState($chatId);
 		}
 	};
 
@@ -1293,15 +1454,32 @@
 		}
 	}
 
+	$: {
+		const selectionDrivenState = getSelectionDrivenWebSearchState();
+		if (
+			webSearchSelectionSyncReady &&
+			webSearchModeSource !== 'user' &&
+			selectionDrivenState &&
+			(webSearchMode !== selectionDrivenState.mode ||
+				webSearchModeSource !== selectionDrivenState.source)
+		) {
+			webSearchMode = selectionDrivenState.mode;
+			webSearchModeSource = selectionDrivenState.source;
+			persistChatSessionState();
+		}
+	}
+
 	$: if (chatIdProp) {
 		(async () => {
 			loading = true;
 			resetReasoningSelectionTracking();
+			webSearchSelectionSyncReady = false;
 
 			prompt = '';
 			files = [];
 			selectedToolIds = [];
 			webSearchMode = getPreferredDefaultWebSearchMode();
+			webSearchModeSource = 'default';
 			imageGenerationEnabled = false;
 			imageGenerationOptions = {};
 			reasoningEffort = null;
@@ -1326,6 +1504,7 @@
 				window.setTimeout(() => scrollToBottom(), 0);
 				const chatInput = document.getElementById('chat-input');
 				chatInput?.focus();
+				webSearchSelectionSyncReady = true;
 				initializeReasoningSelectionTracking();
 			} else {
 				await goto('/');
@@ -1660,11 +1839,13 @@
 					files = [];
 					selectedToolIds = [];
 					webSearchMode = getPreferredDefaultWebSearchMode();
+					webSearchModeSource = 'default';
 					imageGenerationEnabled = false;
 					imageGenerationOptions = {};
 				}
 			}
 			restoreChatSessionState(chatIdProp);
+			webSearchSelectionSyncReady = true;
 		}
 
 		showControls.subscribe(async (value) => {
@@ -2018,6 +2199,7 @@
 		const fresh = options.fresh ?? false;
 		freshChatActive = fresh;
 		resetReasoningSelectionTracking();
+		webSearchSelectionSyncReady = false;
 
 		if ($page.url.searchParams.get('models')) {
 			selectedModels = $page.url.searchParams.get('models')?.split(',');
@@ -2151,10 +2333,12 @@
 			reasoningEffort = null;
 			maxThinkingTokens = null;
 			webSearchMode = getPreferredDefaultWebSearchMode();
+			webSearchModeSource = 'default';
 		} else {
 			reasoningEffort = null;
 			maxThinkingTokens = null;
 			webSearchMode = getPreferredDefaultWebSearchMode();
+			webSearchModeSource = 'default';
 			restoreChatSessionState('');
 			if (reasoningEffort) {
 				params.reasoning_effort = reasoningEffort;
@@ -2171,6 +2355,7 @@
 		}
 		if ($page.url.searchParams.get('web-search') === 'true') {
 			webSearchMode = 'halo';
+			webSearchModeSource = 'user';
 		}
 
 		if ($page.url.searchParams.get('image-generation') === 'true') {
@@ -2223,6 +2408,7 @@
 
 		if (fresh && $page.url.searchParams.get('web-search') !== 'true') {
 			webSearchMode = getPreferredWebSearchMode(userSettings?.ui ?? $settings, 'off');
+			webSearchModeSource = 'default';
 		}
 
 		if (fresh) {
@@ -2257,6 +2443,7 @@
 
 		const chatInput = document.getElementById('chat-input');
 		setTimeout(() => chatInput?.focus(), 0);
+		webSearchSelectionSyncReady = true;
 		initializeReasoningSelectionTracking();
 
 		if (fresh && $page.url.searchParams.get('fresh-chat') === 'true') {
@@ -3527,11 +3714,9 @@
 			})
 			.filter((message) => message?.role === 'user' || message?.content?.trim());
 
-		const requestedWebSearchMode =
-			$config?.features?.enable_web_search &&
-			($user?.role === 'admin' || $user?.permissions?.features?.web_search)
-				? normalizeWebSearchMode(webSearchMode, 'off')
-				: 'off';
+		const requestedWebSearchMode = canUseChatWebSearch()
+			? normalizeWebSearchMode(webSearchMode, 'off')
+			: 'off';
 
 		const res = await generateOpenAIChatCompletion(
 			localStorage.token,
@@ -4348,6 +4533,7 @@
 								bind:imageGenerationOptions
 								bind:codeInterpreterEnabled
 								bind:webSearchMode
+								{webSearchModeSource}
 								bind:atSelectedModel
 								bind:reasoningEffort
 								bind:maxThinkingTokens
@@ -4357,36 +4543,7 @@
 								transparentBackground={$settings?.backgroundImageUrl ?? false}
 								{stopResponse}
 								{createMessagePair}
-								onChange={(input) => {
-									// 反向同步: ThinkingControl → Controls(params)
-									const newRE = normalizeReasoningEffortValue(input.reasoningEffort ?? null);
-									const newMT = normalizeThinkingTokenValue(input.maxThinkingTokens ?? null);
-									const oldRE = normalizeReasoningEffortValue(params?.reasoning_effort ?? null);
-									const oldMT = normalizeThinkingTokenValue(params?.max_thinking_tokens ?? null);
-									if (newRE !== oldRE || newMT !== oldMT) {
-										const finalMT = newRE ? null : newMT;
-										_lastSyncedEffort = newRE;
-										_lastSyncedTokens = finalMT;
-										params = {
-											...params,
-											reasoning_effort: newRE,
-											max_thinking_tokens: finalMT
-										};
-									}
-									webSearchMode = resolveStoredWebSearchMode(
-										{ webSearchMode: input.webSearchMode },
-										getPreferredDefaultWebSearchMode()
-									);
-									reasoningEffort = newRE;
-									maxThinkingTokens = newMT;
-									persistChatSessionState();
-
-									if (input.prompt) {
-										writeChatInputState(input, $chatId);
-									} else {
-										removeChatInputState($chatId);
-									}
-								}}
+								onChange={handleMessageInputChange}
 								on:upload={async (e) => {
 									const { type, data } = e.detail;
 
@@ -4429,6 +4586,7 @@
 								bind:imageGenerationOptions
 								bind:codeInterpreterEnabled
 								bind:webSearchMode
+								{webSearchModeSource}
 								bind:atSelectedModel
 								bind:reasoningEffort
 								bind:maxThinkingTokens
@@ -4439,6 +4597,7 @@
 								toolServers={$toolServers}
 								{stopResponse}
 								{createMessagePair}
+								onChange={handleMessageInputChange}
 								on:upload={async (e) => {
 									const { type, data } = e.detail;
 

@@ -672,17 +672,19 @@
 
 		const num = (v: unknown) => (typeof v === 'number' ? v.toLocaleString() : null);
 		const rows: [string, string | null][] = [
-			['输入 Token', num(input)],
-			['输出 Token', num(output)],
-			['推理 Token', num(reasoning)],
-			['缓存 Token', num(cached)]
+			[$i18n.t('输入 Token', { defaultValue: 'Input Tokens' }), num(input)],
+			[$i18n.t('输出 Token', { defaultValue: 'Output Tokens' }), num(output)],
+			[$i18n.t('推理 Token', { defaultValue: 'Reasoning Tokens' }), num(reasoning)],
+			[$i18n.t('缓存 Token', { defaultValue: 'Cached Tokens' }), num(cached)]
 		];
 
 		let h = `<div style="background:${bg};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid ${bd};border-radius:1rem;padding:10px 14px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);min-width:150px">`;
 
 		if (typeof total === 'number') {
 			h += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${dv}">`;
-			h += `<span style="font-size:12px;font-weight:500;color:${lb}">总消耗</span>`;
+			h += `<span style="font-size:12px;font-weight:500;color:${lb}">${$i18n.t('总消耗', {
+				defaultValue: 'Total'
+			})}</span>`;
 			h += `<span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;color:${hr}">${total.toLocaleString()}</span>`;
 			h += `</div>`;
 		}
@@ -693,7 +695,9 @@
 			h += `<span style="color:${lb}">${label}</span>`;
 			h += val !== null
 				? `<span style="font-weight:500;font-variant-numeric:tabular-nums;color:${vl}">${val}</span>`
-				: `<span style="color:${vl};font-style:italic">未返回</span>`;
+				: `<span style="color:${vl};font-style:italic">${$i18n.t('未返回', {
+					defaultValue: 'Not returned'
+				})}</span>`;
 			h += `</div>`;
 		}
 		h += `</div></div>`;
@@ -806,7 +810,7 @@
 					<ModelIcon
 						src={model?.info?.meta?.profile_image_url ??
 							model?.meta?.profile_image_url ??
-							($i18n.language === 'dg-DG' ? `/doge.png` : `${WEBUI_BASE_URL}/static/favicon.png`)}
+							`${WEBUI_BASE_URL}/static/favicon.png`}
 						alt="model profile"
 						bare={true}
 						className="size-[26px] sm:size-[34px] rounded-xl -translate-y-[1px] ring-2 ring-white/60 dark:ring-white/20"
@@ -855,8 +859,8 @@
 
 			{#if stats && (stats.speed || stats.tokens || stats.elapsed)}
 				<div class="text-gray-500 dark:text-gray-400 mt-1 ml-0.5 text-xs sm:text-sm">
-					{#if stats.speed}速度: {stats.speed} T/s{/if}{#if stats.speed && (stats.tokens || stats.elapsed)}{' | '}{/if}{#if stats.tokens}消耗:
-						{stats.tokens} Token{/if}{#if stats.tokens && stats.elapsed}{' | '}{/if}{#if stats.elapsed}耗时:
+					{#if stats.speed}{$i18n.t('速度', { defaultValue: 'Speed' })}: {stats.speed} T/s{/if}{#if stats.speed && (stats.tokens || stats.elapsed)}{' | '}{/if}{#if stats.tokens}{$i18n.t('消耗', { defaultValue: 'Tokens' })}:
+						{stats.tokens} Token{/if}{#if stats.tokens && stats.elapsed}{' | '}{/if}{#if stats.elapsed}{$i18n.t('耗时', { defaultValue: 'Elapsed' })}:
 						{stats.elapsed} s{/if}
 				</div>
 			{/if}
@@ -866,7 +870,7 @@
 					class="flex items-baseline gap-1.5 mt-1 ml-0.5 text-xs text-gray-400 dark:text-gray-500 italic"
 				>
 					<RefreshCw class="w-3.5 h-3.5 shrink-0 translate-y-[1px]" strokeWidth={1.5} />
-					<span class="line-clamp-1">{message.instruction.replace(/^请/, '')}</span>
+					<span class="line-clamp-1">{message.instruction.replace(/^请/, '').replace(/^Please\s+/i, '')}</span>
 				</div>
 			{/if}
 

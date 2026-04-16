@@ -5,10 +5,13 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const dispatch = createEventDispatcher();
 
 	const i18n: Writable<any> = getContext('i18n');
+	const tr = (key: string, defaultValue: string, options: Record<string, any> = {}) =>
+		translateWithDefault($i18n, key, defaultValue, options);
 	type ToolCallingMode = 'default' | 'native' | 'off';
 	const TOOL_CALLING_MODE_ORDER: ToolCallingMode[] = ['default', 'native', 'off'];
 
@@ -1473,7 +1476,10 @@
 			class="py-1.5 px-1 w-full justify-between rounded-lg hover:bg-gray-50/80 dark:hover:bg-white/[0.02] transition-colors duration-150"
 		>
 			<Tooltip
-				content="添加当前模型界面里没直接暴露的请求字段。参数值会自动识别为数字、布尔值、null、JSON，或原始文本。"
+				content={tr(
+					'添加当前模型界面里没直接暴露的请求字段。参数值会自动识别为数字、布尔值、null、JSON，或原始文本。',
+					'Add request fields that are not directly exposed in the current model UI. Values are automatically interpreted as numbers, booleans, null, JSON, or raw text.'
+				)}
 				placement="top-start"
 				className="inline-tooltip"
 			>
@@ -1482,11 +1488,13 @@
 					type="button"
 					on:click={toggleCustomParamsPanel}
 				>
-					<div class="self-center text-xs font-medium">自定义请求参数</div>
+					<div class="self-center text-xs font-medium">
+						{tr('自定义请求参数', 'Custom Request Parameters')}
+					</div>
 					<div
 						class="shrink-0 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
 					>
-						添加
+						{tr('添加', 'Add')}
 					</div>
 				</button>
 			</Tooltip>
@@ -1495,7 +1503,10 @@
 				<div class="mt-2 rounded-xl border border-dashed border-gray-200/80 dark:border-gray-700/60 bg-gray-50/60 dark:bg-gray-900/25 px-2.5 py-2.5 space-y-2">
 					<div class="flex items-center justify-between gap-3">
 						<div class="text-[11px] leading-5 text-gray-500 dark:text-gray-400">
-							会作为补充字段附加到上游请求，不覆盖系统已有参数。
+							{tr(
+								'会作为补充字段附加到上游请求，不覆盖系统已有参数。',
+								'These fields are appended to the upstream request and do not overwrite existing system parameters.'
+							)}
 						</div>
 						{#if hasCustomParams}
 							<button
@@ -1503,7 +1514,7 @@
 								type="button"
 								on:click={clearCustomParams}
 							>
-								清空
+								{tr('清空', 'Clear')}
 							</button>
 						{/if}
 					</div>
@@ -1512,14 +1523,17 @@
 						<input
 							class="w-full rounded-lg py-1.5 px-2.5 text-xs dark:text-gray-300 bg-white/80 dark:bg-gray-800/70 border border-gray-200/70 dark:border-gray-700/50 outline-hidden focus:border-blue-300/50 dark:focus:border-blue-500/30 transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
 							type="text"
-							placeholder="参数名，如 top_k"
+							placeholder={tr('参数名，如 top_k', 'Parameter name, e.g. top_k')}
 							bind:value={customFieldName}
 							autocomplete="off"
 						/>
 						<input
 							class="w-full rounded-lg py-1.5 px-2.5 text-xs dark:text-gray-300 bg-white/80 dark:bg-gray-800/70 border border-gray-200/70 dark:border-gray-700/50 outline-hidden focus:border-blue-300/50 dark:focus:border-blue-500/30 transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
 							type="text"
-							placeholder='参数值，支持 JSON / true / 123 / null'
+							placeholder={tr(
+								'参数值，支持 JSON / true / 123 / null',
+								'Value, supports JSON / true / 123 / null'
+							)}
 							bind:value={customFieldValue}
 							autocomplete="off"
 							on:keydown={(event) => {
@@ -1534,7 +1548,7 @@
 							type="button"
 							on:click={addCustomParam}
 							disabled={!customFieldName.trim()}
-							title="添加参数"
+							title={tr('添加参数', 'Add Parameter')}
 						>
 							<Plus className="size-3.5" strokeWidth="2.5" />
 						</button>

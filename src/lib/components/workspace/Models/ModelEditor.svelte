@@ -31,8 +31,11 @@
 	import AccessControl from '../common/AccessControl.svelte';
 	import { toast } from 'svelte-sonner';
 	import HaloSelect from '$lib/components/common/HaloSelect.svelte';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const i18n = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	export let onSubmit: Function;
 	export let onBack: null | Function = null;
@@ -61,7 +64,9 @@
 	const tabMeta: Array<{
 		key: ModelEditorTab;
 		titleKey: string;
+		titleDefault: string;
 		descKey: string;
+		descDefault: string;
 		badgeColor: string;
 		iconColor: string;
 		iconPaths: string[];
@@ -69,7 +74,9 @@
 		{
 			key: 'profile',
 			titleKey: '模型信息',
+			titleDefault: 'Model Info',
 			descKey: '头像、名称、基础模型、描述、标签、访问控制',
+			descDefault: 'Avatar, name, base model, description, tags, and access control',
 			badgeColor: 'bg-amber-50 dark:bg-amber-950/30',
 			iconColor: 'text-amber-500 dark:text-amber-400',
 			iconPaths: [
@@ -79,7 +86,9 @@
 		{
 			key: 'behavior',
 			titleKey: '行为设置',
+			titleDefault: 'Behavior Settings',
 			descKey: '系统提示词、高级参数、提示建议',
+			descDefault: 'System prompt, advanced parameters, and suggestion prompts',
 			badgeColor: 'bg-indigo-50 dark:bg-indigo-950/30',
 			iconColor: 'text-indigo-500 dark:text-indigo-400',
 			iconPaths: [
@@ -90,7 +99,9 @@
 		{
 			key: 'integrations',
 			titleKey: '集成配置',
+			titleDefault: 'Integrations',
 			descKey: '知识库、工具、技能、过滤器、动作、内置工具',
+			descDefault: 'Knowledge bases, tools, skills, filters, actions, and built-in tools',
 			badgeColor: 'bg-cyan-50 dark:bg-cyan-950/30',
 			iconColor: 'text-cyan-500 dark:text-cyan-400',
 			iconPaths: [
@@ -100,7 +111,9 @@
 		{
 			key: 'capabilities',
 			titleKey: '能力与预览',
+			titleDefault: 'Capabilities & Preview',
 			descKey: '模型能力开关、JSON 配置预览',
+			descDefault: 'Model capability toggles and JSON config preview',
 			badgeColor: 'bg-emerald-50 dark:bg-emerald-950/30',
 			iconColor: 'text-emerald-500 dark:text-emerald-400',
 			iconPaths: [
@@ -111,8 +124,8 @@
 
 	$: allTabs = tabMeta.map((t) => ({
 		...t,
-		title: $i18n.t(t.titleKey),
-		description: $i18n.t(t.descKey)
+		title: tr(t.titleKey, t.titleDefault),
+		description: tr(t.descKey, t.descDefault)
 	}));
 
 	$: activeTab = allTabs.find((t) => t.key === selectedTab) ?? allTabs[0];

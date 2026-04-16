@@ -20,6 +20,10 @@
 
 	import { verifyMCPServerConnection } from '$lib/apis/configs';
 	import { getErrorDetail } from '$lib/apis/response';
+	import { translateWithDefault } from '$lib/i18n';
+
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	type TransportType = 'http' | 'stdio';
 
@@ -94,11 +98,12 @@
 	let verifyError = '';
 	let showAllTools = false;
 
-	const MCP_PRESETS: MCPPreset[] = [
+	let MCP_PRESETS: MCPPreset[] = [];
+	$: MCP_PRESETS = [
 		{
 			id: 'composio',
 			name: 'Composio',
-			description: '200+ 应用集成 (GitHub, Slack, Gmail, Jira 等)',
+			description: tr('200+ 应用集成 (GitHub, Slack, Gmail, Jira 等)', '200+ app integrations (GitHub, Slack, Gmail, Jira, etc.)'),
 			category: 'hosted',
 			transport_type: 'http',
 			icon: '🔗',
@@ -106,94 +111,94 @@
 			headers: { 'x-consumer-api-key': '' },
 			auth_type: 'none',
 			requires_key: true,
-			setup_hint: '把 composio 提供的 API Key 填到 x-consumer-api-key 的值里即可',
+			setup_hint: tr('把 composio 提供的 API Key 填到 x-consumer-api-key 的值里即可', 'Paste the Composio API key into x-consumer-api-key.'),
 			doc_url: 'https://docs.composio.dev'
 		},
 		{
 			id: 'smithery',
 			name: 'Smithery',
-			description: 'MCP 服务器托管平台，支持 fetch/memory/search 等',
+			description: tr('MCP 服务器托管平台，支持 fetch/memory/search 等', 'Hosted MCP platform with fetch, memory, search, and more.'),
 			category: 'hosted',
 			transport_type: 'http',
 			icon: '🛠️',
 			url: 'https://server.smithery.ai/{server-name}/mcp',
 			auth_type: 'bearer',
 			requires_key: true,
-			setup_hint: '在 smithery.ai 注册，选择 MCP 服务器获取端点和 Key',
+			setup_hint: tr('在 smithery.ai 注册，选择 MCP 服务器获取端点和 Key', 'Register on smithery.ai and choose an MCP server to get the endpoint and key.'),
 			doc_url: 'https://smithery.ai'
 		},
 		{
 			id: 'zapier',
 			name: 'Zapier MCP',
-			description: '工作流自动化，连接 7000+ 应用',
+			description: tr('工作流自动化，连接 7000+ 应用', 'Workflow automation for 7000+ apps.'),
 			category: 'hosted',
 			transport_type: 'http',
 			icon: '⚡',
 			url: 'https://actions.zapier.com/mcp/actions',
 			auth_type: 'bearer',
 			requires_key: true,
-			setup_hint: '在 Zapier 设置中启用 MCP 并获取 Access Token',
+			setup_hint: tr('在 Zapier 设置中启用 MCP 并获取 Access Token', 'Enable MCP in Zapier settings and copy the access token.'),
 			doc_url: 'https://actions.zapier.com'
 		},
 		{
 			id: 'memory',
 			name: 'Memory',
-			description: '本地记忆型 MCP 服务器',
+			description: tr('本地记忆型 MCP 服务器', 'Local memory MCP server.'),
 			category: 'stdio',
 			transport_type: 'stdio',
 			icon: '🧠',
 			command: 'npx',
 			args: ['-y', '@modelcontextprotocol/server-memory'],
-			setup_hint: '无需额外配置，首次启动可能会下载 npm 包。',
-			runtime_hint: '需要 Node.js 与 npx'
+			setup_hint: tr('无需额外配置，首次启动可能会下载 npm 包。', 'No extra setup is required. The first launch may download npm packages.'),
+			runtime_hint: tr('需要 Node.js 与 npx', 'Requires Node.js and npx')
 		},
 		{
 			id: 'sequential-thinking',
 			name: 'Sequential Thinking',
-			description: '适合多步拆解与推理过程',
+			description: tr('适合多步拆解与推理过程', 'Good for multi-step decomposition and reasoning.'),
 			category: 'stdio',
 			transport_type: 'stdio',
 			icon: '🪜',
 			command: 'npx',
 			args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
-			setup_hint: '首次启动可能会下载 npm 包。',
-			runtime_hint: '需要 Node.js 与 npx'
+			setup_hint: tr('首次启动可能会下载 npm 包。', 'The first launch may download npm packages.'),
+			runtime_hint: tr('需要 Node.js 与 npx', 'Requires Node.js and npx')
 		},
 		{
 			id: 'context7',
 			name: 'Context7',
-			description: '查询最新文档与框架 API',
+			description: tr('查询最新文档与框架 API', 'Look up the latest docs and framework APIs.'),
 			category: 'stdio',
 			transport_type: 'stdio',
 			icon: '📚',
 			command: 'npx',
 			args: ['-y', '@upstash/context7-mcp'],
-			setup_hint: '首次启动可能会下载 npm 包。',
-			runtime_hint: '需要 Node.js 与 npx'
+			setup_hint: tr('首次启动可能会下载 npm 包。', 'The first launch may download npm packages.'),
+			runtime_hint: tr('需要 Node.js 与 npx', 'Requires Node.js and npx')
 		},
 		{
 			id: 'fetch',
 			name: 'Fetch',
-			description: '网页抓取 MCP 服务器',
+			description: tr('网页抓取 MCP 服务器', 'Web fetching MCP server.'),
 			category: 'stdio',
 			transport_type: 'stdio',
 			icon: '🌐',
 			command: 'uvx',
 			args: ['mcp-server-fetch'],
-			setup_hint: '请确保当前运行环境已安装 uv。',
-			runtime_hint: '需要 Python 与 uv/uvx'
+			setup_hint: tr('请确保当前运行环境已安装 uv。', 'Make sure uv is installed in the current runtime.'),
+			runtime_hint: tr('需要 Python 与 uv/uvx', 'Requires Python and uv/uvx')
 		},
 		{
 			id: 'time',
 			name: 'Time',
-			description: '时间与时区 MCP 服务器',
+			description: tr('时间与时区 MCP 服务器', 'Time and timezone MCP server.'),
 			category: 'stdio',
 			transport_type: 'stdio',
 			icon: '⏰',
 			command: 'uvx',
 			args: ['mcp-server-time'],
-			setup_hint: '请确保当前运行环境已安装 uv。',
-			runtime_hint: '需要 Python 与 uv/uvx'
+			setup_hint: tr('请确保当前运行环境已安装 uv。', 'Make sure uv is installed in the current runtime.'),
+			runtime_hint: tr('需要 Python 与 uv/uvx', 'Requires Python and uv/uvx')
 		}
 	];
 
@@ -238,7 +243,10 @@
 		}
 
 		if (runtimeProfile === 'slim') {
-			return '当前为官方 slim 轻量版，未内置该运行时。想直接体验这个 MCP，推荐切换到官方 main 镜像。';
+			return tr(
+				'当前为官方 slim 轻量版，未内置该运行时。想直接体验这个 MCP，推荐切换到官方 main 镜像。',
+				'This official slim image does not include the required runtime. Switch to the official main image for the quickest experience.'
+			);
 		}
 
 		return getPresetRuntimeCapability(preset)?.message || preset.setup_hint;
@@ -250,7 +258,7 @@
 		}
 
 		if (runtimeProfile === 'slim') {
-			return '推荐切换到 main 镜像获得开箱体验';
+			return tr('推荐切换到 main 镜像获得开箱体验', 'Switch to the main image for the best out-of-the-box experience.');
 		}
 
 		return getPresetRuntimeCapability(preset)?.message || preset.runtime_hint;
@@ -258,8 +266,14 @@
 
 	$: manualStdioHint =
 		runtimeProfile === 'slim'
-			? '当前运行的是官方 slim 轻量版，默认不内置 Node.js / uv。想直接使用常见 stdio MCP，推荐切换到官方 main 镜像；如果你愿意自行安装运行时，也可以继续手动配置。'
-			: 'stdio 命令运行在 HaloWebUI 服务端。请确保服务端已安装对应 runtime；npx 需要 Node.js，uvx 需要 Python + uv。启动中的 stdio MCP 会额外占用内存，空闲后会自动回收。';
+			? tr(
+					'当前运行的是官方 slim 轻量版，默认不内置 Node.js / uv。想直接使用常见 stdio MCP，推荐切换到官方 main 镜像；如果你愿意自行安装运行时，也可以继续手动配置。',
+					'The official slim image does not ship with Node.js or uv by default. Switch to the official main image for common stdio MCP servers, or keep going if you prefer to install the runtime yourself.'
+				)
+			: tr(
+					'stdio 命令运行在 HaloWebUI 服务端。请确保服务端已安装对应 runtime；npx 需要 Node.js，uvx 需要 Python + uv。启动中的 stdio MCP 会额外占用内存，空闲后会自动回收。',
+					'stdio commands run on the HaloWebUI server. Make sure the server has the required runtime installed: npx needs Node.js, uvx needs Python and uv. Running stdio MCP servers also uses extra memory until they go idle.'
+				);
 
 	$: hostedPresets = MCP_PRESETS.filter((preset) => preset.category === 'hosted');
 	$: stdioPresets = MCP_PRESETS.filter((preset) => preset.category === 'stdio');
@@ -1046,7 +1060,10 @@
 					<div class="space-y-4 mt-3">
 						{#if isAdmin && runtimeProfile === 'slim'}
 							<div class="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs leading-relaxed text-sky-700 dark:border-sky-800/50 dark:bg-sky-950/30 dark:text-sky-300">
-								当前运行的是官方 `slim` 轻量版。它不会预装 stdio MCP 常用运行时；想直接体验 `Memory`、`Context7`、`Fetch`、`Time` 等预设，推荐切换到官方 `main` 镜像。
+								{tr(
+									'当前运行的是官方 slim 轻量版。它不会预装 stdio MCP 常用运行时；想直接体验 Memory、Context7、Fetch、Time 等预设，推荐切换到官方 main 镜像。',
+									'You are using the official slim image. It does not include common stdio MCP runtimes by default. Switch to the official main image to use presets like Memory, Context7, Fetch, and Time immediately.'
+								)}
 							</div>
 						{/if}
 
@@ -1098,7 +1115,9 @@
 														<div class="text-sm font-medium">{preset.name}</div>
 														<span class="px-1.5 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">stdio</span>
 														{#if isPresetRuntimeUnavailable(preset) && runtimeProfile === 'slim'}
-															<span class="px-1.5 py-0.5 text-[10px] rounded bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">推荐 main</span>
+															<span class="px-1.5 py-0.5 text-[10px] rounded bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+																{tr('推荐 main', 'Main recommended')}
+															</span>
 														{/if}
 													</div>
 													<div class="text-xs text-gray-500 mt-0.5">{preset.description}</div>

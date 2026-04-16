@@ -286,7 +286,8 @@
 		$models ?? []
 	);
 	$: currentWebSearchOption = webSearchModeOptions.find((option) => option.value === webSearchMode) ?? null;
-	$: currentWebSearchModeLabel = currentWebSearchOption?.label ?? getWebSearchModeLabel(webSearchMode);
+	$: currentWebSearchModeLabel =
+		currentWebSearchOption?.label ?? getWebSearchModeLabel(webSearchMode, $i18n.t.bind($i18n));
 	$: currentWebSearchModeDescription = currentWebSearchOption?.description ?? '';
 	$: webSearchAvailabilityNote = getNativeWebSearchAvailabilityNote(
 		(key, options) => $i18n.t(key, options),

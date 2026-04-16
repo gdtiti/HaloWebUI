@@ -596,7 +596,11 @@
 
 			{#if showPyodideConsent}
 				<div class="border-b border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
-					<div class="font-medium">浏览器 Python 运行时未准备就绪</div>
+					<div class="font-medium">
+						{$i18n.t('浏览器 Python 运行时未准备就绪', {
+							defaultValue: 'Browser Python runtime is not ready'
+						})}
+					</div>
 					<div class="mt-1 text-xs leading-relaxed">
 						{getPyodideDownloadSummary(pyodideConsentPackages)}
 					</div>
@@ -614,7 +618,7 @@
 							}}
 							type="button"
 						>
-							下载并启用
+							{$i18n.t('下载并启用', { defaultValue: 'Download and Enable' })}
 						</button>
 						<button
 							class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-900/30"
@@ -622,11 +626,13 @@
 								showPyodideConsent = false;
 								pendingPyodideCode = '';
 								pyodideConsentPackages = [];
-								stderr = '已取消下载浏览器 Python 运行时。';
+								stderr = $i18n.t('已取消下载浏览器 Python 运行时。', {
+									defaultValue: 'Browser Python runtime download was cancelled.'
+								});
 							}}
 							type="button"
 						>
-							暂不
+							{$i18n.t('暂不', { defaultValue: 'Not now' })}
 						</button>
 					</div>
 				</div>

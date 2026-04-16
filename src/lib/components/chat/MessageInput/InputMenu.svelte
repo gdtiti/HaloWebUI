@@ -32,6 +32,7 @@
 		{ value: 'off', label: $i18n.t('Off') },
 		{ value: 'halo', label: 'HaloWebUI' }
 	];
+	export let onWebSearchModeChange: ((mode: WebSearchMode) => void) | null = null;
 	export let imageGenerationEnabled: boolean = false;
 	export let codeInterpreterEnabled: boolean = false;
 
@@ -117,7 +118,7 @@
 	$: currentWebSearchModeLabel =
 		currentWebSearchModeOption?.shortLabel ??
 		currentWebSearchModeOption?.label ??
-		getWebSearchModeLabel(webSearchMode);
+		getWebSearchModeLabel(webSearchMode, $i18n.t.bind($i18n));
 
 	const getOptionDescriptionClasses = (tone?: WebSearchModeOption['descriptionTone']) => {
 		switch (tone) {
@@ -226,14 +227,15 @@
 									<DropdownMenu.Item
 										disabled={option.disabled}
 										class="flex w-full justify-between gap-3 items-start px-3 py-2 text-sm font-medium cursor-pointer rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 data-[disabled]:opacity-45 data-[disabled]:cursor-not-allowed"
-										on:click={() => {
-											if (option.disabled) {
-												return;
-											}
-											webSearchMode = option.value;
-											show = false;
-										}}
-									>
+											on:click={() => {
+												if (option.disabled) {
+													return;
+												}
+												webSearchMode = option.value;
+												onWebSearchModeChange?.(option.value);
+												show = false;
+											}}
+										>
 										<div class="min-w-0 flex-1">
 											<div class="flex items-center gap-2">
 												<div class="truncate">{option.label}</div>

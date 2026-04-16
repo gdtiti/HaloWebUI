@@ -346,6 +346,7 @@
 	"Discover, download, and explore model presets": "發掘、下載及探索模型預設集",
 	"Dismissible": "可忽略",
 	"Display": "顯示",
+	"Show Formula Quick Copy Button": "顯示公式快速複製按鈕",
 	"Expand Tool and Detail Blocks by Default": "預設展開工具與詳情區塊",
 	"Display Emoji in Call": "在通話中顯示表情符號",
 	"Display the username instead of You in the Chat": "在對話中顯示使用者名稱，而非「您」",
@@ -1557,5 +1558,12 @@
 	"No verified LobeHub skills are available right now.": "目前沒有可顯示的已核實 LobeHub 技能。",
 	"Create a custom skill for your own workflow.": "為你的工作流程建立一個自訂技能。",
 	"Skills still reuse the existing prompt-skill injection flow for compatibility.": "為了相容性，技能仍然沿用現有的 prompt-skill 注入流程。",
-	"LobeHub Skill": "LobeHub 技能"
+	"LobeHub Skill": "LobeHub 技能",
+	"Settings reset": "設定已重設",
+	"Select an engine": "選擇引擎",
+	"Select a voice": "選擇語音",
+	"Per-Model Voice Override": "個別模型語音覆寫",
+	"Set a different voice for specific models. Leave empty to use the default voice.": "為特定模型設定不同的語音；留空則使用預設語音。",
+	"Args": "參數",
+	"Env": "環境變數"
 }

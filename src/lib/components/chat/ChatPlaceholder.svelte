@@ -55,9 +55,7 @@
 							<ModelIcon
 								src={model?.info?.meta?.profile_image_url ??
 									model?.meta?.profile_image_url ??
-									($i18n.language === 'dg-DG'
-										? `/doge.png`
-										: `${WEBUI_BASE_URL}/static/favicon.png`)}
+									`${WEBUI_BASE_URL}/static/favicon.png`}
 								alt="logo"
 								className="size-[2.7rem] rounded-2xl border-[1px] border-gray-100 dark:border-none"
 							/>

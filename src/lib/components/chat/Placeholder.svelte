@@ -34,7 +34,7 @@
 	import ModelIcon from '$lib/components/common/ModelIcon.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { getModelChatDisplayName } from '$lib/utils/model-display';
-	import type { WebSearchMode } from '$lib/utils/web-search-mode';
+	import type { WebSearchMode, WebSearchModeSource } from '$lib/utils/web-search-mode';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import AssistantPickerModal from './AssistantPickerModal.svelte';
@@ -53,6 +53,7 @@
 
 	export let createMessagePair: Function;
 	export let stopResponse: Function;
+	export let onChange: Function = () => {};
 
 	export let autoScroll = false;
 
@@ -72,6 +73,7 @@
 	export let imageGenerationOptions = {};
 	export let codeInterpreterEnabled = false;
 	export let webSearchMode: WebSearchMode = 'off';
+	export let webSearchModeSource: WebSearchModeSource = 'default';
 
 	export let reasoningEffort: string | null = null;
 	export let maxThinkingTokens: number | null = null;
@@ -245,9 +247,7 @@
 									<ModelIcon
 										src={model?.info?.meta?.profile_image_url ??
 											model?.meta?.profile_image_url ??
-											($i18n.language === 'dg-DG'
-												? `/doge.png`
-												: `${WEBUI_BASE_URL}/static/favicon.png`)}
+											`${WEBUI_BASE_URL}/static/favicon.png`}
 										className="size-14 @sm:size-16 rounded-2xl border-2 border-white dark:border-gray-800 shadow-lg"
 										alt="logo"
 									/>
@@ -320,9 +320,11 @@
 					bind:imageGenerationOptions
 					bind:codeInterpreterEnabled
 					bind:webSearchMode
+					{webSearchModeSource}
 					bind:atSelectedModel
 					bind:reasoningEffort
 					bind:maxThinkingTokens
+					{onChange}
 					{onDeactivateAssistant}
 					{toolServers}
 					{transparentBackground}
@@ -343,7 +345,9 @@
 		<div class="mx-auto mt-1 w-full max-w-4xl px-2.5" in:fade={{ duration: 160, delay: 120 }}>
 			<div class="rounded-3xl border border-gray-200/60 bg-white/65 p-3 text-left shadow-sm backdrop-blur-xl dark:border-gray-700/30 dark:bg-white/[0.03]">
 				<div class="flex items-center justify-between gap-3 px-1">
-					<div class="text-xs font-medium text-gray-500 dark:text-gray-400">精选助手</div>
+					<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+						{$i18n.t('精选助手', { defaultValue: 'Featured Assistants' })}
+					</div>
 					<button
 						class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
 						on:click={() => {
@@ -354,10 +358,10 @@
 					>
 						{#if editMode}
 							<Check className="size-3.5" strokeWidth="2.25" />
-							<span>完成</span>
+							<span>{$i18n.t('完成', { defaultValue: 'Done' })}</span>
 						{:else}
 							<Pencil className="size-3.5" strokeWidth="2.1" />
-							<span>管理</span>
+							<span>{$i18n.t('管理', { defaultValue: 'Manage' })}</span>
 						{/if}
 					</button>
 				</div>
@@ -461,7 +465,9 @@
 								<div class="rounded-full border border-current p-1">
 									<Plus className="size-4" />
 								</div>
-								<div class="text-xs font-medium">添加助手</div>
+								<div class="text-xs font-medium">
+									{$i18n.t('添加助手', { defaultValue: 'Add Assistant' })}
+								</div>
 							</div>
 						</button>
 					{/if}
@@ -469,20 +475,25 @@
 
 				{#if !editMode && featuredAssistants.length === 0}
 					<div class="mt-2 rounded-2xl border border-dashed border-gray-200/80 px-4 py-8 text-center text-sm text-gray-400 dark:border-gray-700/70 dark:text-gray-500">
-						暂无精选助手，点击右上角“管理”即可添加
+						{$i18n.t('暂无精选助手，点击右上角“管理”即可添加', {
+							defaultValue: 'No featured assistants yet. Click "Manage" in the top-right corner to add one.'
+						})}
 					</div>
 				{/if}
 
 				{#if editMode}
 					<div class="mt-3 flex items-center justify-between px-1">
 						<div class="text-xs text-gray-400 dark:text-gray-500">
-							最多 {MAX_FEATURED_ASSISTANTS} 个精选助手
+							{$i18n.t('最多 {{count}} 个精选助手', {
+								defaultValue: 'Up to {{count}} featured assistants',
+								count: MAX_FEATURED_ASSISTANTS
+							})}
 						</div>
 						<button
 							class="text-xs font-medium text-gray-500 transition hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
 							on:click={handleResetFeaturedAssistants}
 						>
-							恢复默认
+							{$i18n.t('恢复默认', { defaultValue: 'Restore Defaults' })}
 						</button>
 					</div>
 				{/if}

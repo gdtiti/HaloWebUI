@@ -2,6 +2,7 @@
 	import { DropdownMenu } from 'bits-ui';
 	import { flyAndScale } from '$lib/utils/transitions';
 	import { getContext } from 'svelte';
+	import { translateWithDefault } from '$lib/i18n';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -14,6 +15,8 @@
 	} from '$lib/utils/anthropic-thinking';
 
 	const i18n = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	export let reasoningEffort: string | null = null;
 	export let maxThinkingTokens: number | null = null;
@@ -21,9 +24,9 @@
 
 	let dropdownOpen = false;
 
-	const defaultEffortSteps = [
-		{ value: 'none', label: '关闭' },
-		{ value: null, label: '默认' },
+	$: defaultEffortSteps = [
+		{ value: 'none', label: $i18n.t('关闭', { defaultValue: 'Off' }) },
+		{ value: null, label: $i18n.t('默认', { defaultValue: 'Default' }) },
 		{ value: 'low', label: 'Low' },
 		{ value: 'medium', label: 'Med' },
 		{ value: 'high', label: 'High' },
@@ -31,9 +34,9 @@
 		{ value: 'max', label: 'Max' }
 	];
 
-	const defaultTokenSteps = [
-		{ value: 0, label: '关闭' },
-		{ value: null, label: '默认' },
+	$: defaultTokenSteps = [
+		{ value: 0, label: $i18n.t('关闭', { defaultValue: 'Off' }) },
+		{ value: null, label: $i18n.t('默认', { defaultValue: 'Default' }) },
 		{ value: 2048, label: '2K' },
 		{ value: 8192, label: '8K' },
 		{ value: 16384, label: '16K' },
@@ -42,8 +45,8 @@
 	];
 
 	$: anthropicProfile = getAnthropicThinkingProfile(model);
-	$: effortSteps = getAnthropicEffortSteps(model) ?? defaultEffortSteps;
-	$: tokenSteps = getAnthropicBudgetSteps(model) ?? defaultTokenSteps;
+	$: effortSteps = getAnthropicEffortSteps(model, $i18n.t.bind($i18n)) ?? defaultEffortSteps;
+	$: tokenSteps = getAnthropicBudgetSteps(model, $i18n.t.bind($i18n)) ?? defaultTokenSteps;
 
 	let activeMode: 'effort' | 'budget' = 'effort';
 	let customMode = false;
@@ -219,7 +222,7 @@
 							: 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'}"
 					on:click={() => switchMode('effort')}
 				>
-					强度
+					{tr('强度', 'Effort')}
 				</button>
 				<button
 					type="button"
@@ -229,7 +232,7 @@
 							: 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'}"
 					on:click={() => switchMode('budget')}
 				>
-					预算
+					{tr('预算', 'Budget')}
 				</button>
 			</div>
 
@@ -264,7 +267,7 @@
 						<input
 							type="text"
 							class="w-full text-xs py-1.5 px-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/40 rounded-lg outline-hidden focus:border-blue-300/50 dark:focus:border-blue-500/30 transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-							placeholder="如 high、medium"
+							placeholder={tr('如 high、medium', 'e.g. high, medium')}
 							bind:value={customValue}
 							on:input={() => {
 								reasoningEffort = customValue || null;
@@ -275,7 +278,7 @@
 						<input
 							type="number"
 							class="w-full text-xs py-1.5 px-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/40 rounded-lg outline-hidden focus:border-blue-300/50 dark:focus:border-blue-500/30 transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-							placeholder="最小 1024"
+							placeholder={tr('最小 1024', 'Minimum 1024')}
 							bind:value={customValue}
 							min="1024"
 							on:input={() => {
@@ -298,7 +301,9 @@
 							: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}"
 					on:click={toggleCustom}
 				>
-					{customMode ? '返回预设' : '自定义'}
+					{customMode
+						? tr('返回预设', 'Back to presets')
+						: tr('自定义', 'Custom')}
 				</button>
 			</div>
 		</DropdownMenu.Content>

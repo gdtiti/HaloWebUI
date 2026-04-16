@@ -6,11 +6,14 @@
 	import { goto } from '$app/navigation';
 	import { config, tools as toolsStore, user } from '$lib/stores';
 	import { getBackendConfig } from '$lib/apis';
+	import { translateWithDefault } from '$lib/i18n';
 
 	const { saveAs } = fileSaver;
 
 	const dispatch = createEventDispatcher();
 	const i18n: Writable<any> = getContext('i18n');
+	const tr = (key: string, defaultValue: string) =>
+		translateWithDefault($i18n, key, defaultValue);
 
 	export let roleAware = false;
 
@@ -50,11 +53,54 @@
 
 	let selectedTab: 'native' | 'mcp' | 'workspace' | 'openapi' = 'native';
 
-	const tabMeta: Record<string, { label: string; description: string; badgeColor: string; iconColor: string }> = {
-		native:    { label: '内置功能',       description: '管理工具调用模式、内置搜索、知识库、图像生成等原生工具开关。', badgeColor: 'bg-emerald-50 dark:bg-emerald-950/30', iconColor: 'text-emerald-500 dark:text-emerald-400' },
-		mcp:       { label: 'MCP 服务器',     description: '通过 MCP 协议连接外部工具服务器，支持 HTTP（优先 Streamable HTTP，自动兼容旧版 HTTP+SSE）与 stdio 传输。', badgeColor: 'bg-violet-50 dark:bg-violet-950/30',  iconColor: 'text-violet-500 dark:text-violet-400' },
-		workspace: { label: '工作空间工具',   description: '管理自定义 Python 工具，支持导入、导出和阀门配置。',           badgeColor: 'bg-blue-50 dark:bg-blue-950/30',    iconColor: 'text-blue-500 dark:text-blue-400' },
-		openapi:   { label: 'OpenAPI 服务器', description: '连接兼容 OpenAPI 规范的工具服务器，适用于企业级集成。',       badgeColor: 'bg-orange-50 dark:bg-orange-950/30', iconColor: 'text-orange-500 dark:text-orange-400' }
+	const tabMeta: Record<
+		string,
+		{
+			labelKey: string;
+			labelDefault: string;
+			descriptionKey: string;
+			descriptionDefault: string;
+			badgeColor: string;
+			iconColor: string;
+		}
+	> = {
+		native: {
+			labelKey: '内置功能',
+			labelDefault: 'Built-in Features',
+			descriptionKey: '管理工具调用模式、内置搜索、知识库、图像生成等原生工具开关。',
+			descriptionDefault:
+				'Manage tool calling mode, built-in search, knowledge base, image generation, and other native tool toggles.',
+			badgeColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+			iconColor: 'text-emerald-500 dark:text-emerald-400'
+		},
+		mcp: {
+			labelKey: 'MCP 服务器',
+			labelDefault: 'MCP Servers',
+			descriptionKey:
+				'通过 MCP 协议连接外部工具服务器，支持 HTTP（优先 Streamable HTTP，自动兼容旧版 HTTP+SSE）与 stdio 传输。',
+			descriptionDefault:
+				'Connect external tool servers over MCP using HTTP (preferring Streamable HTTP while remaining compatible with legacy HTTP+SSE) or stdio transport.',
+			badgeColor: 'bg-violet-50 dark:bg-violet-950/30',
+			iconColor: 'text-violet-500 dark:text-violet-400'
+		},
+		workspace: {
+			labelKey: '工作空间工具',
+			labelDefault: 'Workspace Tools',
+			descriptionKey: '管理自定义 Python 工具，支持导入、导出和阀门配置。',
+			descriptionDefault:
+				'Manage custom Python tools, including import, export, and valve configuration.',
+			badgeColor: 'bg-blue-50 dark:bg-blue-950/30',
+			iconColor: 'text-blue-500 dark:text-blue-400'
+		},
+		openapi: {
+			labelKey: 'OpenAPI 服务器',
+			labelDefault: 'OpenAPI Servers',
+			descriptionKey: '连接兼容 OpenAPI 规范的工具服务器，适用于企业级集成。',
+			descriptionDefault:
+				'Connect tool servers compatible with the OpenAPI specification for enterprise integrations.',
+			badgeColor: 'bg-orange-50 dark:bg-orange-950/30',
+			iconColor: 'text-orange-500 dark:text-orange-400'
+		}
 	};
 
 	$: activeTabMeta = tabMeta[selectedTab];
@@ -684,7 +730,7 @@
 									<div class="min-w-0">
 										<div class="flex items-center gap-3">
 											<div class="text-base font-semibold text-gray-800 dark:text-gray-100">
-												{$i18n.t(activeTabMeta.label)}
+												{tr(activeTabMeta.labelKey, activeTabMeta.labelDefault)}
 											</div>
 											{#if selectedTab !== 'workspace'}
 												<InlineDirtyActions
@@ -695,7 +741,7 @@
 											{/if}
 										</div>
 										<p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-											{$i18n.t(activeTabMeta.description)}
+											{tr(activeTabMeta.descriptionKey, activeTabMeta.descriptionDefault)}
 										</p>
 									</div>
 								</div>
@@ -708,7 +754,7 @@
 										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75a4.5 4.5 0 0 1-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 1 1-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 0 1 6.336-4.486l-3.276 3.276a3.004 3.004 0 0 0 2.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852Z" />
 										</svg>
-										<span class="min-w-0 truncate">{$i18n.t('内置功能')}</span>
+										<span class="min-w-0 truncate">{tr('内置功能', 'Built-in Features')}</span>
 									</button>
 								{/if}
 								<button type="button" class={`flex min-w-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${selectedTab === 'mcp' ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`} on:click={() => { selectedTab = 'mcp'; }}>
@@ -723,7 +769,7 @@
 									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0" />
 									</svg>
-									<span class="min-w-0 truncate">{$i18n.t('工作空间')}</span>
+									<span class="min-w-0 truncate">{tr('工作空间', 'Workspace')}</span>
 								</button>
 								<button type="button" class={`flex min-w-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${selectedTab === 'openapi' ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`} on:click={() => { selectedTab = 'openapi'; }}>
 									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -1051,11 +1097,12 @@
 								</svg>
 								<div>
 									<div class="text-xs font-medium text-blue-700 dark:text-blue-300">
-										{$i18n.t('关于 MCP')}
+										{tr('关于 MCP', 'About MCP')}
 									</div>
 										<div class="text-xs leading-relaxed text-blue-600 dark:text-blue-400 mt-0.5">
-											{$i18n.t(
-												'MCP（模型上下文协议）是一个用于 LLM 与外部工具通信的开放标准。当前支持 HTTP（优先 Streamable HTTP，自动兼容旧版 HTTP+SSE）与 stdio 两种传输方式。'
+											{tr(
+												'MCP（模型上下文协议）是一个用于 LLM 与外部工具通信的开放标准。当前支持 HTTP（优先 Streamable HTTP，自动兼容旧版 HTTP+SSE）与 stdio 两种传输方式。',
+												'MCP (Model Context Protocol) is an open standard for communication between LLMs and external tools. HTTP (preferring Streamable HTTP while remaining compatible with legacy HTTP+SSE) and stdio transports are currently supported.'
 											)}
 										</div>
 								</div>
@@ -1299,11 +1346,12 @@
 								</svg>
 								<div>
 									<div class="text-xs font-medium text-amber-700 dark:text-amber-300">
-										{$i18n.t('安全警告')}
+										{tr('安全警告', 'Security Warning')}
 									</div>
 									<div class="text-xs leading-relaxed text-amber-700 dark:text-amber-300 mt-0.5">
-										{$i18n.t(
-											'工作空间工具会在服务器上执行任意 Python 代码。请仅向受信任的用户授予访问权限。'
+										{tr(
+											'工作空间工具会在服务器上执行任意 Python 代码。请仅向受信任的用户授予访问权限。',
+											'Workspace tools can execute arbitrary Python code on the server. Grant access only to trusted users.'
 										)}
 									</div>
 								</div>
@@ -1517,10 +1565,13 @@
 								</svg>
 								<div>
 									<div class="text-xs font-medium text-green-700 dark:text-green-300">
-										{$i18n.t('推荐集成方式')}
+										{tr('推荐集成方式', 'Recommended Integration Path')}
 									</div>
 									<div class="text-xs leading-relaxed text-green-600 dark:text-green-400 mt-0.5">
-										{$i18n.t('OpenAPI 是企业级部署的首选集成方式，提供 SSO、API 网关和审计追踪。')}
+										{tr(
+											'OpenAPI 是企业级部署的首选集成方式，提供 SSO、API 网关和审计追踪。',
+											'OpenAPI is the recommended integration path for enterprise deployments, with SSO, API gateways, and audit trails.'
+										)}
 									</div>
 								</div>
 							</div>

@@ -42,6 +42,7 @@ describe('marked katex extension', () => {
 		expect(inlineMath).toHaveLength(1);
 		expect(inlineMath[0]).toMatchObject({
 			type: 'inlineKatex',
+			raw: '$A$',
 			text: 'A',
 			displayMode: false
 		});
@@ -63,6 +64,7 @@ describe('marked katex extension', () => {
 		expect(nonSpaceTokens).toHaveLength(1);
 		expect(nonSpaceTokens[0]).toMatchObject({
 			type: 'blockKatex',
+			raw: ' $$\na+b\n $$',
 			text: 'a+b',
 			displayMode: true
 		});

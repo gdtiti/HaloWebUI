@@ -239,6 +239,7 @@ type Settings = {
 	collapseCodeBlocks?: boolean;
 	collapseHistoricalLongResponses?: boolean;
 	showMessageOutline?: boolean;
+	showFormulaQuickCopyButton?: boolean;
 	expandDetails?: boolean;
 	renderMarkdownInPreviews?: boolean;
 	displayMultiModelResponsesInTabs?: boolean;

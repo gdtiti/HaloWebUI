@@ -218,13 +218,15 @@
 		const packages = getPyodidePackagesForCode(code);
 
 		if (usesRemotePyodideRuntime() && !hasPyodideConsent()) {
-			const shouldContinue = window.confirm(getPyodideDownloadSummary(packages));
+			const shouldContinue = window.confirm(getPyodideDownloadSummary(packages, $i18n.t.bind($i18n)));
 			if (!shouldContinue) {
 				executing = false;
 				if (cb) {
 					cb({
 						stdout: null,
-						stderr: '已取消下载浏览器 Python 运行时。',
+						stderr: $i18n.t('已取消下载浏览器 Python 运行时。', {
+							defaultValue: 'Browser Python runtime download was cancelled.'
+						}),
 						result: null
 					});
 				}
